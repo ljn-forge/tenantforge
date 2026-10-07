@@ -355,7 +355,7 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 		w.Header().Set("Cache-Control", "no-store")
 		tx, e := a.DB.Begin(r.Context())
 		if e != nil {
-			writeError(w, id, failure(503, "unavailable", "Service unavailable"))
+			writeError(w, id, requestError(r.Context(), failure(503, "unavailable", "Service unavailable")))
 			return
 		}
 		req := &request{app: a, w: w, r: r, tx: tx, requestID: id, public: public, tenantRequired: tenant}
@@ -375,7 +375,7 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 		if !public {
 			e = req.authenticate()
 			if e != nil {
-				writeError(w, id, e)
+				writeError(w, id, requestError(r.Context(), e))
 				return
 			}
 		}
@@ -385,14 +385,14 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 		}
 		if r.Method != "GET" && r.Method != "HEAD" {
 			if e = req.checkCSRF(); e != nil {
-				writeError(w, id, e)
+				writeError(w, id, requestError(r.Context(), e))
 				return
 			}
 		}
 		if tenant {
 			e = req.loadTenant(r.Header.Get("X-Tenant-ID"))
 			if e != nil {
-				writeError(w, id, e)
+				writeError(w, id, requestError(r.Context(), e))
 				return
 			}
 		}
@@ -403,7 +403,7 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 		}()
 		if r.Method != "GET" && r.Method != "HEAD" {
 			if e = req.prepareBody(); e != nil {
-				writeError(w, id, e)
+				writeError(w, id, requestError(r.Context(), e))
 				return
 			}
 		}
@@ -418,6 +418,7 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 			}
 		}
 		if e != nil {
+			e = requestError(r.Context(), e)
 			if !req.streamed {
 				writeError(w, id, e)
 			}
@@ -455,29 +456,40 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
 }
-func errorCode(e error) string {
+
+// requestError distinguishes transport cancellation from provider-specific query wrappers.
+func requestError(ctx context.Context, e error) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return e
+}
+func classifyError(e error) *APIError {
 	var a *APIError
 	if errors.As(e, &a) {
-		return a.Code
+		return a
 	}
-	return "internal"
+	if errors.Is(e, context.Canceled) {
+		return &APIError{499, "cancelled", "Request cancelled"}
+	}
+	if errors.Is(e, context.DeadlineExceeded) {
+		return &APIError{http.StatusGatewayTimeout, "timeout", "Request timed out"}
+	}
+	if errors.Is(e, pgx.ErrNoRows) {
+		return &APIError{404, "not_found", "Record not found"}
+	}
+	var p *pgconn.PgError
+	if errors.As(e, &p) && (p.Code == "23505" || p.Code == "23503" || p.Code == "40001" || p.Code == "40P01") {
+		return &APIError{409, "conflict", "Conflicting reference or concurrent update"}
+	}
+	return &APIError{500, "internal", "Service operation failed"}
 }
+func errorCode(e error) string { return classifyError(e).Code }
 func writeError(w http.ResponseWriter, id string, e error) {
-	var a *APIError
-	if !errors.As(e, &a) {
-		if errors.Is(e, pgx.ErrNoRows) {
-			a = &APIError{404, "not_found", "Record not found"}
-		} else {
-			var p *pgconn.PgError
-			if errors.As(e, &p) && (p.Code == "23505" || p.Code == "23503" || p.Code == "40001" || p.Code == "40P01") {
-				a = &APIError{409, "conflict", "Conflicting reference or concurrent update"}
-			} else {
-				a = &APIError{500, "internal", "Service operation failed"}
-			}
-		}
-	}
+	a := classifyError(e)
 	writeJSON(w, a.Status, map[string]any{"error": map[string]any{"code": a.Code, "message": a.Message}, "request_id": id})
 }
+
 func (q *request) rows(sql string, args ...any) ([]map[string]any, error) {
 	rows, e := q.tx.Query(q.ctx(), sql, args...)
 	if e != nil {
