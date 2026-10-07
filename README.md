@@ -8,6 +8,8 @@ TenantForge combines a same-origin web console with a Go service and PostgreSQL.
 
 ![TenantForge administration console](docs/assets/dashboard.png)
 
+[Permission matrix](docs/assets/roles-matrix.png) · [Field and record scopes](docs/assets/roles-grant.png) · [Dark theme](docs/assets/dashboard-dark.png) · [Mobile](docs/assets/mobile-dark.png)
+
 ## Start locally
 
 Requirements: Docker with Compose, Python 3.12 or newer. Development also requires Go 1.26.8 and Node 24.21 or a supported newer LTS release.
@@ -32,11 +34,13 @@ Console: http://localhost:5178. Local email mailbox: http://localhost:8029. The 
 ## Included
 
 - Workspace provisioning, suspension, quotas, membership, invitation email, tenant switching, departments and positions.
-- Roles, role copying, effective permission inspection and grant editing; self, department, department tree, selected departments and tenant scopes.
-- Action-specific record predicates, typed conditions, masked sensitive fields and guarded edits, assignments and exports.
+- Resource/action permission matrix, additive presets and grant preview, role copying and effective permission inspection; self, department, department tree, selected departments and tenant scopes.
+- Server-authoritative per-record capabilities, action-specific predicates, typed conditions, masked sensitive fields and guarded edits, assignments and exports.
+- Actual-workload dashboard, Chinese/English presentation, light/dark themes and responsive layouts.
 - Default superadministrator, direct user creation, opaque cookie sessions, CSRF, password recovery, session revocation, TOTP and recovery codes; optional configured OIDC.
 - Tickets with workflow and optimistic versions, dictionaries, settings, notifications, CSV import/export, protected files, durable jobs and audit records.
-- Embedded database migrations, separate migration/runtime accounts, local or S3-compatible storage, SMTP outbox, health/readiness, metrics and container deployment.
+- Public Go extension interfaces for registered record operations and background jobs, with an asset approval/inventory example.
+- Short upload transactions and quota reservations, independent job/mail/collection lanes, typed diagnostics, Prometheus metrics, migration/runtime separation, backup/recovery and container deployment.
 
 ## Documentation
 

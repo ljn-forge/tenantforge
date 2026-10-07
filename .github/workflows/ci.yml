@@ -26,6 +26,7 @@ jobs:
       - run: TF_E2E_CHANNEL=chromium python3 scripts/browser-check.py
       - run: python3 scripts/recovery-check.py
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
+      - run: npx --yes @redocly/cli@2.59.0 lint --extends minimal docs/openapi.json
       - run: cd web && npm audit --audit-level=high
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
       - run: docker compose --profile app build

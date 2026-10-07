@@ -2,7 +2,13 @@
 
 ## Health and supervision
 
-`/healthz` reports process/version; `/readyz` checks database availability. `/metrics` exports request/rejection counters and defaults to loopback access. Network admission controls are required if explicitly enabling public metrics. Compose supervises the application and uses readiness checks. Structured logs contain request IDs, operation/path and generic rejection codes.
+`/healthz` reports process/version; `/readyz` checks database availability. `/metrics` exports request/rejection counters, request duration histograms, worker lane results and queue depth, and defaults to loopback access. Network admission controls are required if explicitly enabling public metrics. Compose supervises the application and uses readiness checks. Structured logs contain request IDs, operation/path and generic rejection codes.
+
+Scrape metrics use registered route templates, HTTP status and fixed worker lane/stage/code labels. They contain no tenant/user IDs or raw URLs. `tenantforge_http_requests_total` and `tenantforge_http_request_duration_seconds` describe API requests; `tenantforge_worker_outcomes_total` and `tenantforge_worker_duration_seconds` describe lane work; `tenantforge_queue_backlog` reports durable queue items. The legacy request/rejection counters remain available.
+
+Business jobs, email, object collection and housekeeping have independent bounded worker lanes and cancellation contexts. A slow export does not consume the mail or collection deadline. Shutdown cancels and waits for every lane. Typed error stage/code fields support diagnosis without exposing raw provider responses.
+
+Session activity is coalesced asynchronously rather than locking the session row for an entire HTTP request. Uploads use short authorization/reservation and publication transactions around object storage I/O; concurrent reservations count toward the storage quota. Publication rechecks current authority and converts one reservation into committed usage. Expired reservations retain cleanup evidence across crashes. Downloads complete current authorization and audit before copying a response body, so a slow client does not hold a database connection.
 
 Jobs and email delivery persist in PostgreSQL. Workers claim with leases and bounded retries. Running export cancellation is cooperative; a cancelled claim cannot publish a succeeded result. Membership, tenant status and permissions are revalidated. Download rechecks current permissions. SMTP delivery is at least once: a connection failure after an SMTP server accepted a message can result in a duplicate on retry.
 

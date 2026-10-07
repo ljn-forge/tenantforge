@@ -73,6 +73,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -126,6 +132,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -217,6 +229,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -270,6 +288,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -365,6 +389,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -446,6 +476,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -532,6 +568,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -604,6 +646,12 @@
                 }
               }
             }
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -685,6 +733,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -747,6 +801,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -799,6 +859,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -877,6 +943,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -947,6 +1019,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1023,6 +1101,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1094,6 +1178,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1165,6 +1255,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1206,6 +1302,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -1222,6 +1324,12 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -1308,6 +1416,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -1358,6 +1472,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1454,6 +1574,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1546,6 +1672,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -1606,6 +1738,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1725,6 +1863,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1834,6 +1978,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -1924,6 +2074,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -1985,6 +2141,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -2045,6 +2207,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2142,6 +2310,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2235,6 +2409,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -2330,6 +2510,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -2390,6 +2576,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2471,6 +2663,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2550,6 +2748,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -2621,6 +2825,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2719,6 +2929,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -2809,6 +3025,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -2869,6 +3091,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -2955,6 +3183,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3077,6 +3311,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -3147,6 +3387,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3237,6 +3483,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -3316,6 +3568,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3412,6 +3670,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -3491,6 +3755,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3586,6 +3856,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3678,6 +3954,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3793,6 +4075,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -3853,6 +4141,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -3946,6 +4240,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4017,6 +4317,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4112,6 +4418,91 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        }
+      },
+      "post": {
+        "operationId": "post__jobs",
+        "summary": "Enqueue a registered background job",
+        "parameters": [
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Job"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "description": "Only registered job types. Registered resource/action authority is required; record services recheck authoritative tenant scope. Payload ownership values cannot establish permission.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobCreate"
+              }
+            }
           }
         }
       }
@@ -4184,6 +4575,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       },
@@ -4253,6 +4650,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4324,6 +4727,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4395,6 +4804,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4460,6 +4875,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4555,6 +4976,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4587,7 +5014,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {}
+                    "data": {
+                      "$ref": "#/components/schemas/Dashboard"
+                    }
                   },
                   "required": [
                     "data"
@@ -4616,6 +5045,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         }
       }
@@ -4680,6 +5115,12 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
           }
         },
         "requestBody": {
@@ -4704,6 +5145,112 @@
             }
           }
         }
+      }
+    },
+    "/resources/{module}/{id}/actions/{action}": {
+      "post": {
+        "operationId": "post__resources_module_id_actions_action",
+        "summary": "Invoke a registered record operation",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Record"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationInput"
+              }
+            }
+          }
+        },
+        "description": "Requires this registered action, current row scope, action-specific writable fields and optimistic version. Core owns final validation, persistence and audit."
       }
     }
   },
@@ -4897,6 +5444,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Operation"
+            }
           }
         },
         "required": [
@@ -4922,11 +5478,19 @@
             "format": "uuid"
           },
           "department_id": {
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "const": ""
+              },
+              {
+                "type": "null"
+              }
             ],
-            "format": "uuid"
+            "description": "Assigned tenant department UUID. Existing response envelopes use an empty string for no department; null is also accepted by clients. PATCH uses null to clear."
           },
           "version": {
             "type": "integer"
@@ -4942,6 +5506,9 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
           }
         },
         "required": [
@@ -4949,7 +5516,8 @@
           "tenant_id",
           "owner_id",
           "version",
-          "data"
+          "data",
+          "capabilities"
         ],
         "additionalProperties": false
       },
@@ -4992,7 +5560,8 @@
               "string",
               "null"
             ],
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Omitted preserves assignment; null clears it; UUID assigns. Resulting-scope authorization still applies."
           },
           "data": {
             "type": "object",
@@ -5030,6 +5599,9 @@
             "items": {
               "$ref": "#/components/schemas/Grant"
             }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
           }
         },
         "required": [],
@@ -5093,6 +5665,22 @@
           "updated_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "error_code": {
+            "type": "string",
+            "description": "Safe machine-readable failure code."
+          },
+          "error_stage": {
+            "type": "string",
+            "description": "Safe bounded failure stage."
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Bounded result projected through registered nonsensitive typed fields."
           }
         },
         "required": [],
@@ -5159,6 +5747,9 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
           }
         },
         "required": [],
@@ -5205,15 +5796,26 @@
             "format": "uuid"
           },
           "department_id": {
-            "type": [
-              "string",
-              "null"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "const": ""
+              },
+              {
+                "type": "null"
+              }
             ],
-            "format": "uuid"
+            "description": "Assigned tenant department UUID. Existing response envelopes use an empty string for no department; null is also accepted by clients. PATCH uses null to clear."
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
           }
         },
         "required": [],
@@ -5255,6 +5857,149 @@
           }
         },
         "required": [],
+        "additionalProperties": false
+      },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "write_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true,
+            "description": "Only fields writable through PATCH/update for this original row; custom operations use their own action authority."
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "actions",
+          "write_fields",
+          "transitions"
+        ],
+        "additionalProperties": false,
+        "description": "Server-authoritative row actions, update fields and next workflow states, computed before response field filtering. Missing capabilities deny client mutations."
+      },
+      "Operation": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "label_en": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "label_en"
+        ],
+        "additionalProperties": false
+      },
+      "JobCreate": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "type",
+          "payload"
+        ],
+        "additionalProperties": false
+      },
+      "OperationInput": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "version",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "Workload": {
+        "type": "object",
+        "properties": {
+          "open_tickets": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "urgent_tickets": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "running_jobs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed_jobs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "members": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false,
+        "description": "Unauthorized metrics are omitted. Ticket classification also requires status/priority field-read predicates, not merely row-read authority."
+      },
+      "Dashboard": {
+        "type": "object",
+        "properties": {
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "recent_activity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Audit"
+            }
+          },
+          "workload": {
+            "$ref": "#/components/schemas/Workload"
+          }
+        },
+        "required": [
+          "counts",
+          "recent_activity",
+          "workload"
+        ],
         "additionalProperties": false
       }
     },
@@ -5321,6 +6066,26 @@
       },
       "InternalError": {
         "description": "Generic internal error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Cancelled": {
+        "description": "Request cancelled or client disconnected (499)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Timeout": {
+        "description": "Request deadline exceeded",
         "content": {
           "application/json": {
             "schema": {

@@ -13,10 +13,10 @@ web:
 dev:
 	python3 scripts/dev.py
 check:
-	test -z "$$(gofmt -l cmd internal migrations examples)"
+	test -z "$$(gofmt -l cmd internal migrations extension examples)"
 	go test -race -timeout 120s ./...
 	go vet ./...
-	cd web && npm test && npm run build
+	cd web && npm run format:check && npm test && npm run build
 integration:
 	python3 scripts/run-env.py --owner go test -race -count=1 -timeout 180s ./...
 browser:

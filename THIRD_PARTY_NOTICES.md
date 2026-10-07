@@ -1232,7 +1232,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream@v1.7.20, github.com/aws/aws-sdk-go-v2/config@v1.33.7, github.com/aws/aws-sdk-go-v2/credentials@v1.20.7, github.com/aws/aws-sdk-go-v2/feature/ec2/imds@v1.20.1, github.com/aws/aws-sdk-go-v2/internal/configsources@v1.5.4, github.com/aws/aws-sdk-go-v2/internal/endpoints/v2@v2.8.4, github.com/aws/aws-sdk-go-v2/internal/v4a@v1.5.4, github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding@v1.13.19, github.com/aws/aws-sdk-go-v2/service/internal/checksum@v1.11.5, github.com/aws/aws-sdk-go-v2/service/internal/presigned-url@v1.14.4, github.com/aws/aws-sdk-go-v2/service/internal/s3shared@v1.20.4, github.com/aws/aws-sdk-go-v2/service/s3@v1.114.1, github.com/aws/aws-sdk-go-v2/service/signin@v1.10.2, github.com/aws/aws-sdk-go-v2/service/sso@v1.38.2, github.com/aws/aws-sdk-go-v2/service/ssooidc@v1.43.2, github.com/aws/aws-sdk-go-v2/service/sts@v1.51.2, github.com/aws/aws-sdk-go-v2@v1.47.1
+## github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream@v1.7.20, github.com/aws/aws-sdk-go-v2/config@v1.33.7, github.com/aws/aws-sdk-go-v2/credentials@v1.20.7, github.com/aws/aws-sdk-go-v2/feature/ec2/imds@v1.20.1, github.com/aws/aws-sdk-go-v2/internal/configsources@v1.5.4, github.com/aws/aws-sdk-go-v2/internal/endpoints/v2@v2.8.4, github.com/aws/aws-sdk-go-v2/internal/v4a@v1.5.4, github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding@v1.13.19, github.com/aws/aws-sdk-go-v2/service/internal/checksum@v1.11.5, github.com/aws/aws-sdk-go-v2/service/internal/presigned-url@v1.14.4, github.com/aws/aws-sdk-go-v2/service/internal/s3shared@v1.20.4, github.com/aws/aws-sdk-go-v2/service/s3@v1.114.1, github.com/aws/aws-sdk-go-v2/service/signin@v1.10.2, github.com/aws/aws-sdk-go-v2/service/sso@v1.38.2, github.com/aws/aws-sdk-go-v2/service/ssooidc@v1.43.2, github.com/aws/aws-sdk-go-v2/service/sts@v1.51.2, github.com/aws/aws-sdk-go-v2@v1.47.1, github.com/prometheus/client_model@v0.6.2, github.com/prometheus/common@v0.70.1, github.com/prometheus/client_golang@v1.24.1, github.com/prometheus/procfs@v0.22.0
 
 LICENSE.txt
 
@@ -2191,7 +2191,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
-## golang.org/x/crypto@v0.57.0, golang.org/x/oauth2@v0.37.0, golang.org/x/sync@v0.23.0, golang.org/x/text@v0.42.0, Go standard library/runtime 1.26.8
+## golang.org/x/crypto@v0.57.0, golang.org/x/oauth2@v0.37.0, golang.org/x/sync@v0.23.0, golang.org/x/text@v0.42.0, Go standard library/runtime 1.26.8, golang.org/x/sys@v0.48.0
 
 LICENSE
 
@@ -5730,4 +5730,194 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+## github.com/beorn7/perks@v1.0.1
+
+LICENSE
+
+```text
+Copyright (C) 2013 Blake Mizerany
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## github.com/cespare/xxhash/v2@v2.3.0
+
+LICENSE.txt
+
+```text
+Copyright (c) 2016 Caleb Spare
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+## google.golang.org/protobuf@v1.36.12
+
+LICENSE
+
+```text
+Copyright (c) 2018 The Go Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the name of Google Inc. nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## github.com/prometheus/client_model@v0.6.2
+
+NOTICE
+
+```text
+Data model artifacts for Prometheus.
+Copyright 2012-2015 The Prometheus Authors
+
+This product includes software developed at
+SoundCloud Ltd. (http://soundcloud.com/).
+```
+
+## github.com/prometheus/common@v0.70.1
+
+NOTICE
+
+```text
+Common libraries shared by Prometheus Go components.
+Copyright 2015 The Prometheus Authors
+
+This product includes software developed at
+SoundCloud Ltd. (http://soundcloud.com/).
+```
+
+## github.com/prometheus/client_golang@v1.24.1
+
+NOTICE
+
+```text
+Prometheus instrumentation library for Go applications
+Copyright 2012-2015 The Prometheus Authors
+
+This product includes software developed at
+SoundCloud Ltd. (http://soundcloud.com/).
+
+
+The following components are included in this product:
+
+perks - a fork of https://github.com/bmizerany/perks
+https://github.com/beorn7/perks
+Copyright 2013-2015 Blake Mizerany, Björn Rabenstein
+See https://github.com/beorn7/perks/blob/master/README.md for license details.
+
+Go support for Protocol Buffers - Google's data interchange format
+http://github.com/golang/protobuf/
+Copyright 2010 The Go Authors
+See source code for license details.
+```
+
+## github.com/munnerz/goautoneg@v0.0.0-20191010083416-a7dc8b61c822
+
+LICENSE
+
+```text
+Copyright (c) 2011, Open Knowledge Foundation Ltd.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+
+    Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+
+    Neither the name of the Open Knowledge Foundation Ltd. nor the
+    names of its contributors may be used to endorse or promote
+    products derived from this software without specific prior written
+    permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+## github.com/prometheus/procfs@v0.22.0
+
+NOTICE
+
+```text
+procfs provides functions to retrieve system, kernel and process
+metrics from the pseudo-filesystem proc.
+
+Copyright 2014-2015 The Prometheus Authors
+
+This product includes software developed at
+SoundCloud Ltd. (http://soundcloud.com/).
 ```

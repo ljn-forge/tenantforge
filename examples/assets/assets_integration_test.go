@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ljn-forge/tenantforge/internal/platform"
@@ -118,7 +119,7 @@ func TestRegisteredModuleWorksThroughHTTPAndEmbeddedMigration(t *testing.T) {
 	csrf = call("GET", "/auth/csrf", nil)["data"].(map[string]any)["csrf_token"].(string)
 	me := call("GET", "/auth/me", nil)["data"].(map[string]any)
 	tenant = me["tenants"].([]any)[0].(map[string]any)["id"].(string)
-	created := call("POST", "/resources/assets", map[string]any{"data": map[string]any{"name": "Laptop", "serial": "FIXTURE-001", "active": true}})["data"].(map[string]any)
+	created := call("POST", "/resources/assets", map[string]any{"data": map[string]any{"name": "Laptop", "serial": "FIXTURE-001", "active": false}})["data"].(map[string]any)
 	id := created["id"].(string)
 	detail := call("GET", "/resources/assets/"+id, nil)["data"].(map[string]any)
 	if detail["data"].(map[string]any)["name"] != "Laptop" {
@@ -128,4 +129,36 @@ func TestRegisteredModuleWorksThroughHTTPAndEmbeddedMigration(t *testing.T) {
 	if len(listed) != 1 {
 		t.Fatal("registered module SQL search/paging mismatch")
 	}
+	approved := call("POST", "/resources/assets/"+id+"/actions/approve", map[string]any{"version": 1, "data": map[string]any{}})["data"].(map[string]any)
+	if approved["version"] != float64(2) || approved["data"].(map[string]any)["active"] != true {
+		t.Fatal("registered approval did not persist its guarded field patch")
+	}
+	audit := call("GET", "/audit", nil)["data"].([]any)
+	foundApproval := false
+	for _, item := range audit {
+		entry := item.(map[string]any)
+		if entry["resource"] == "assets" && entry["action"] == "approve" && entry["record_id"] == id {
+			foundApproval = true
+		}
+	}
+	if !foundApproval {
+		t.Fatal("approval did not commit a core-managed audit")
+	}
+	job := call("POST", "/jobs", map[string]any{"type": "assets_inventory", "payload": map[string]any{}})["data"].(map[string]any)
+	deadline := time.Now().Add(8 * time.Second)
+	for {
+		job = call("GET", "/jobs/"+job["id"].(string), nil)["data"].(map[string]any)
+		if job["status"] == "succeeded" {
+			break
+		}
+		if job["status"] == "failed" || time.Now().After(deadline) {
+			t.Fatal("registered background inventory did not complete")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	result := job["result"].(map[string]any)
+	if result["count"] != float64(1) {
+		t.Fatal("registered task did not walk its authorized records")
+	}
+
 }

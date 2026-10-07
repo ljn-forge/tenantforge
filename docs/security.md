@@ -22,6 +22,8 @@ Reads and writes have distinct checks. Mutation authorization applies to both th
 
 Readable/writable/unmasked fields are checked against grants matching the individual row. `*` covers non-sensitive fields only. A named sensitive read field is masked unless explicitly listed in unmask_fields. Invisible fields are omitted. A broad read grant does not give permission to write protected fields. The role editor consumes the backend registry and the browser is never the authoritative authorization layer.
 
+Record responses expose server-computed capabilities before data filtering. The browser defaults to denying actions when capabilities are absent. Update writable fields are separate from custom-operation field authority. Dashboard classification counts also apply field-read predicates so restricted readers cannot infer hidden status or priority.
+
 Audit stores changed field names and ownership/version metadata rather than raw sensitive business values. CSV exports use current authorization and field filters, including authorization on download. Formula-like values are escaped. CSV import validates all rows in a bounded transaction; rejected imports commit no partial rows.
 
 ## Accounts and requests

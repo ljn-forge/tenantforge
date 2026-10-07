@@ -30,7 +30,11 @@ Body upload and object transfer must occur outside long database transactions;
 bounded short transactions authorize/reserve, then reauthorize and publish.
 Download authorization/audit commits before transferring the response body.
 Reservations, expiry and cleanup must preserve quota correctness and uncertain
-publication safety across cancellation, crashes and permission revocation.
+publication safety across cancellation, crashes and permission revocation. Concurrent
+reservations count toward storage quota; publication converts reserved usage to
+committed usage exactly once. Collection must not delete active or ambiguously
+committed publications. Final tenant, membership and role revalidation shares a
+short transaction synchronized with revocation and publication.
 
 Independent bounded worker lanes handle business jobs, mail, garbage collection,
 and housekeeping with their own contexts. Close waits for all lanes. Slow export
@@ -53,7 +57,10 @@ have at-least-once execution and must use the stable job ID for idempotency.
 
 Resource responses add `capabilities: {actions: string[], write_fields: string[],
 transitions: string[]}`. Compute these from the original row and matching grants,
-before filtering response fields. UI buttons and edit forms use this authority;
+before filtering response fields. `write_fields` contains only PATCH/update
+fields, never a union of custom-operation grants. Each operation uses its own
+action field checks, including status writes for transitions. UI buttons and
+edit forms use this authority;
 missing capabilities deny mutation. Custom operations use POST
 `/resources/{module}/{id}/actions/{action}` with `{version,data}`. Module metadata
 may include `operations: [{key,label,label_en}]` and `description_en`; callbacks
@@ -61,13 +68,18 @@ are never serialized. The seven existing CRUD actions retain their contracts.
 
 Jobs add optional `error_code`, `error_stage` and safe `result` metadata. POST
 `/jobs` accepts `{type,payload}` only for explicitly registered job types, under
-the registered resource/action grant and record scope. All existing endpoints
+the registered resource/action grant and record scope. Callbacks access records
+only through authoritative tenant-scoped services; payload owner/department
+values never establish authority. Typed nonsensitive result fields are explicitly
+allowlisted and serialized results are bounded. All existing endpoints
 remain valid. Extend File/Job/control-row capabilities where row actions apply.
 
 Dashboard keeps `counts` and `recent_activity` for compatibility, and adds
 `workload: {open_tickets?:number, urgent_tickets?:number, running_jobs?:number,
 failed_jobs?:number, members?:number}`. Omit unauthorized categories rather than
 invent zeros. Counts respect the same record predicates as list endpoints.
+Open/urgent classification also requires the relevant status/priority field-read
+predicate; title-only readers cannot infer hidden fields through aggregates.
 Activity descriptions are localized and human-readable; UUIDs and raw JSON are
 secondary details, not the primary presentation. Optional actor/record display
 names require their corresponding data authorization; do not leak hidden fields.
