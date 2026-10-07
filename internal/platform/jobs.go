@@ -16,19 +16,17 @@ import (
 	"strings"
 	"time"
 
-	pgx "github.com/jackc/pgx/v5"
-
 	"github.com/google/uuid"
 )
 
-const jobSelect = "SELECT id::text,type,status,attempts,max_attempts,error,created_at,updated_at,actor_id::text,coalesce(department_id::text,'') department_id"
+const jobSelect = "SELECT id::text,type,status,attempts,max_attempts,error,error_stage,error_code,result,authority_hash,authority_resource,authority_action,created_at,updated_at,actor_id::text,coalesce(department_id::text,'') department_id"
 
 func (q *request) job(id string) (map[string]any, error) {
 	return q.one(jobSelect+",payload,result_key FROM jobs WHERE tenant_id=$1 AND id=$2", q.p.TenantID, id)
 }
 func jobPublic(row map[string]any) map[string]any {
 	out := map[string]any{}
-	for _, key := range []string{"id", "type", "status", "attempts", "max_attempts", "error", "created_at", "updated_at"} {
+	for _, key := range []string{"id", "type", "status", "attempts", "max_attempts", "error", "error_stage", "error_code", "result", "created_at", "updated_at"} {
 		out[key] = row[key]
 	}
 	return out
@@ -39,7 +37,13 @@ func listJobs(q *request) (any, error) {
 	}
 	b := &predicate{}
 	where := b.authorized(q.p, "jobs", "read", "j", "j.actor_id", "j.department_id", "")
-	return q.sqlPage("SELECT j.id::text,j.type,j.status,j.attempts,j.max_attempts,j.error,j.created_at,j.updated_at", "FROM jobs j", where, "j.created_at DESC,j.id", b)
+	if status := q.r.URL.Query().Get("status"); status != "" {
+		if !slices.Contains([]string{"pending", "running", "succeeded", "failed", "cancelled"}, status) {
+			return nil, validation("Invalid job status")
+		}
+		where += " AND j.status=" + b.arg(status)
+	}
+	return q.sqlPage("SELECT j.id::text,j.type,j.status,j.attempts,j.max_attempts,j.error,j.error_stage,j.error_code,j.result,j.authority_hash,j.authority_resource,j.authority_action,j.created_at,j.updated_at,j.actor_id::text,coalesce(j.department_id::text,'') department_id", "FROM jobs j", where, "j.created_at DESC,j.id", b)
 }
 func getJob(q *request) (any, error) {
 	id, e := q.id()
@@ -53,7 +57,7 @@ func getJob(q *request) (any, error) {
 	if !Allowed(q.p, "jobs", "read", q.controlRow(r["actor_id"].(string), r["department_id"].(string))) {
 		return nil, notFound()
 	}
-	return jobPublic(r), nil
+	return q.publicJob(r), nil
 }
 func retryJob(q *request) (any, error) {
 	id, e := q.id()
@@ -73,7 +77,7 @@ func retryJob(q *request) (any, error) {
 	if e = q.checkQuota("jobs", 1); e != nil {
 		return nil, e
 	}
-	tag, e := q.tx.Exec(q.ctx(), "UPDATE jobs SET status='pending',attempts=0,error='',updated_at=now() WHERE id=$1 AND tenant_id=$2 AND status='failed'", id, q.p.TenantID)
+	tag, e := q.tx.Exec(q.ctx(), "UPDATE jobs SET status='pending',attempts=0,error='',error_code='',error_stage='',updated_at=now() WHERE id=$1 AND tenant_id=$2 AND status='failed'", id, q.p.TenantID)
 	if e != nil {
 		return nil, e
 	}
@@ -87,7 +91,7 @@ func retryJob(q *request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
-	return jobPublic(r), q.audit("retry", "jobs", id, map[string]any{})
+	return q.publicJob(r), q.audit("retry", "jobs", id, map[string]any{})
 }
 func cancelJob(q *request) (any, error) {
 	id, e := q.id()
@@ -115,7 +119,7 @@ func cancelJob(q *request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
-	return jobPublic(r), q.audit("cancel", "jobs", id, map[string]any{})
+	return q.publicJob(r), q.audit("cancel", "jobs", id, map[string]any{})
 }
 
 func deleteJob(q *request) (any, error) {
@@ -347,6 +351,12 @@ func downloadJob(q *request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
+	if e = q.audit("download", "jobs", id, map[string]any{}); e != nil {
+		return nil, e
+	}
+	if e = q.release(); e != nil {
+		return nil, e
+	}
 	q.w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	q.w.Header().Set("Content-Length", strconv.Itoa(len(b)))
 	q.w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": payload.Module + ".csv"}))
@@ -430,214 +440,6 @@ func importResources(q *request) (any, error) {
 	}
 	return map[string]any{"inserted": inserted}, q.audit("import", m, "", map[string]any{"inserted": inserted})
 }
-func (a *App) workers(ctx context.Context) {
-	ticker := time.NewTicker(400 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			taskCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
-			a.runOneJob(taskCtx)
-			a.sendOneMail(taskCtx)
-			a.collectOneFile(taskCtx)
-			a.DB.Exec(taskCtx, "DELETE FROM login_attempts WHERE key IN (SELECT key FROM login_attempts WHERE window_at<now()-interval '1 day' LIMIT 1000)")
-			a.DB.Exec(taskCtx, "DELETE FROM oidc_flows WHERE expires_at<now()")
-			a.DB.Exec(taskCtx, "DELETE FROM reset_tokens WHERE expires_at<now()")
-			a.DB.Exec(taskCtx, "DELETE FROM sessions WHERE expires_at<now()")
-			cancel()
-		}
-	}
-}
-func (a *App) runOneJob(ctx context.Context) {
-	tx, e := a.DB.Begin(ctx)
-	if e != nil {
-		return
-	}
-	defer tx.Rollback(ctx)
-	var id, tenant string
-	e = tx.QueryRow(ctx, `SELECT job_id::text,tenant_id::text FROM job_leases WHERE next_attempt_at<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY next_attempt_at FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&id, &tenant)
-	if e != nil {
-		return
-	}
-	if _, e = tx.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenant); e != nil {
-		return
-	}
-	var status string
-	var attempts, max int
-	if e = tx.QueryRow(ctx, "SELECT status,attempts,max_attempts FROM jobs WHERE id=$1 AND tenant_id=$2 FOR UPDATE", id, tenant).Scan(&status, &attempts, &max); e != nil {
-		return
-	}
-	if status == "cancelled" || status == "succeeded" || status == "failed" || attempts >= max {
-		if attempts >= max {
-			tx.Exec(ctx, "UPDATE jobs SET status='failed',error='Retry limit reached',updated_at=now() WHERE id=$1 AND tenant_id=$2 AND status IN ('pending','running')", id, tenant)
-		}
-		tx.Exec(ctx, "DELETE FROM job_leases WHERE job_id=$1", id)
-		tx.Commit(ctx)
-		return
-	}
-	claim := randomToken()
-	if _, e = tx.Exec(ctx, "UPDATE job_leases SET claim_token=$1,lease_until=now()+interval '45 seconds' WHERE job_id=$2", digest(claim), id); e != nil {
-		return
-	}
-	if _, e = tx.Exec(ctx, "UPDATE jobs SET status='running',attempts=attempts+1,updated_at=now() WHERE id=$1 AND tenant_id=$2", id, tenant); e != nil {
-		return
-	}
-	if e = tx.Commit(ctx); e != nil {
-		return
-	}
-	a.executeJob(ctx, id, tenant, digest(claim))
-}
-func (a *App) executeJob(ctx context.Context, id, tenant, claim string) {
-	execCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-execCtx.Done():
-				return
-			case <-ticker.C:
-				var exists bool
-				err := a.DB.QueryRow(execCtx, "SELECT EXISTS(SELECT FROM job_leases WHERE job_id=$1 AND claim_token=$2)", id, claim).Scan(&exists)
-				if err != nil || !exists {
-					cancel()
-					return
-				}
-			}
-		}
-	}()
-	tx, e := a.DB.Begin(execCtx)
-	if e != nil {
-		return
-	}
-	defer tx.Rollback(context.Background())
-	if _, e = tx.Exec(execCtx, "SELECT set_config('app.tenant_id',$1,true)", tenant); e != nil {
-		return
-	}
-	var actor, status, kind string
-	var raw []byte
-	var attempts, max int
-	if e = tx.QueryRow(execCtx, "SELECT actor_id::text,status,type,payload,attempts,max_attempts FROM jobs WHERE id=$1 AND tenant_id=$2", id, tenant).Scan(&actor, &status, &kind, &raw, &attempts, &max); e != nil || status != "running" {
-		return
-	}
-	r, _ := http.NewRequestWithContext(execCtx, "GET", "http://worker", nil)
-	q := &request{app: a, tx: tx, r: r, p: Principal{ID: actor}, requestID: id}
-	e = q.loadTenant(tenant)
-	var data []byte
-	var payload exportPayload
-	if e == nil {
-		if kind != "export" {
-			e = validation("Unknown job type")
-		} else if e = json.Unmarshal(raw, &payload); e == nil {
-			data, e = q.exportCSV(payload)
-		}
-	}
-	key := ""
-	published := false
-	defer func() {
-		if key != "" && !published {
-			a.deleteOrQueue(key)
-		}
-	}()
-	if e == nil {
-		key = uuid.NewString()
-		e = a.reserveObject(execCtx, key, tenant)
-		if e == nil {
-			e = a.storage().Put(execCtx, key, bytes.NewReader(data), int64(len(data)), "text/csv")
-		}
-	}
-	tx.Rollback(context.Background())
-	if execCtx.Err() != nil {
-		return
-	}
-	finish, e2 := a.DB.Begin(ctx)
-	if e2 != nil {
-		return
-	}
-	defer finish.Rollback(ctx)
-	if _, e2 = finish.Exec(ctx, "SELECT set_config('app.tenant_id',$1,true)", tenant); e2 != nil {
-		return
-	}
-	var valid bool
-	if e2 = finish.QueryRow(ctx, "SELECT EXISTS(SELECT FROM job_leases WHERE job_id=$1 AND claim_token=$2)", id, claim).Scan(&valid); e2 != nil || !valid {
-		return
-	}
-	r, _ = http.NewRequestWithContext(ctx, "POST", "http://worker", nil)
-	q = &request{app: a, tx: finish, r: r, p: Principal{ID: actor, TenantID: tenant}, requestID: id}
-	if e == nil {
-		e = q.loadTenant(tenant)
-		if e == nil {
-			e = q.require(payload.Module, "export")
-			if e == nil {
-				e = q.checkQuota("storage_bytes", int64(len(data)))
-			}
-		}
-	}
-	if e != nil {
-		safe := "Job execution failed"
-		if errorCode(e) == "forbidden" {
-			safe = "Authorization revoked"
-		}
-		terminal := attempts >= max || errorCode(e) == "forbidden"
-		next := "pending"
-		if terminal {
-			next = "failed"
-		}
-		tag, err := finish.Exec(ctx, "UPDATE jobs SET status=$1,error=$2,updated_at=now() WHERE id=$3 AND tenant_id=$4 AND status='running' AND EXISTS(SELECT FROM job_leases WHERE job_id=$3 AND claim_token=$5)", next, safe, id, tenant, claim)
-		if err != nil || tag.RowsAffected() == 0 {
-			return
-		}
-		if terminal {
-			_, e2 = finish.Exec(ctx, "DELETE FROM job_leases WHERE job_id=$1 AND claim_token=$2", id, claim)
-		} else {
-			_, e2 = finish.Exec(ctx, "UPDATE job_leases SET claim_token=NULL,lease_until=NULL,next_attempt_at=now()+($1*interval '5 seconds') WHERE job_id=$2 AND claim_token=$3", attempts, id, claim)
-		}
-		if e2 == nil {
-			e2 = q.audit(next, "jobs", id, map[string]any{"type": kind})
-		}
-		if e2 == nil {
-			finish.Commit(ctx)
-		}
-		return
-	}
-	tag, e2 := finish.Exec(ctx, "UPDATE jobs SET status='succeeded',result_key=$1,result_bytes=$5,error='',updated_at=now() WHERE id=$2 AND tenant_id=$3 AND status='running' AND EXISTS(SELECT FROM job_leases WHERE job_id=$2 AND claim_token=$4)", key, id, tenant, claim, int64(len(data)))
-	if e2 == nil && tag.RowsAffected() == 1 {
-		_, e2 = finish.Exec(ctx, "DELETE FROM job_leases WHERE job_id=$1 AND claim_token=$2", id, claim)
-		if e2 == nil {
-			e2 = q.audit("succeeded", "jobs", id, map[string]any{"type": kind})
-		}
-		if e2 == nil {
-			_, e2 = finish.Exec(ctx, "DELETE FROM storage_gc WHERE id=$1", key)
-		}
-		if e2 == nil {
-			e2 = finish.Commit(ctx)
-			published = e2 == nil
-		}
-	} else {
-		e2 = conflict()
-	}
-
-}
-func (a *App) collectOneFile(ctx context.Context) {
-	tx, e := a.DB.Begin(ctx)
-	if e != nil {
-		return
-	}
-	defer tx.Rollback(ctx)
-	var id, key, tenant string
-	if e = tx.QueryRow(ctx, "SELECT id::text,storage_key,coalesce(tenant_id::text,'') FROM storage_gc WHERE next_attempt_at<=now() ORDER BY next_attempt_at FOR UPDATE SKIP LOCKED LIMIT 1").Scan(&id, &key, &tenant); e != nil {
-		return
-	}
-	if e = a.collectObject(ctx, tx, id, key, tenant, 300); e != nil {
-		return
-	}
-	tx.Commit(ctx)
-}
-
-var _ = pgx.ErrNoRows
 
 func (q *request) auditCSV(columns []string) ([]byte, error) {
 	b := &predicate{}

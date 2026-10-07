@@ -53,6 +53,7 @@ func (q *request) module() (string, error) {
 	return key, nil
 }
 func (q *request) visible(module, action string, r Record) Record {
+	r.Capabilities = capabilities(q.p, module, r)
 	r.Data = FilterData(q.p, module, action, r)
 	return r
 }
@@ -124,7 +125,7 @@ func getResource(q *request) (any, error) {
 type resourceInput struct {
 	Version    int            `json:"version,omitempty"`
 	Owner      *string        `json:"owner_id,omitempty"`
-	Department *string        `json:"department_id,omitempty"`
+	Department OptionalString `json:"department_id,omitempty"`
 	Data       map[string]any `json:"data"`
 }
 
@@ -174,8 +175,8 @@ func (q *request) insertResource(m string, in resourceInput, action string) (Rec
 	if e != nil {
 		return Record{}, e
 	}
-	if in.Department != nil {
-		dep = *in.Department
+	if in.Department.Present {
+		dep = in.Department.Value
 	}
 	if e = q.validDepartment(dep); e != nil {
 		return Record{}, e
@@ -249,8 +250,8 @@ func (q *request) updateRecord(m, id string, in resourceInput, action string) (R
 			return Record{}, e
 		}
 	}
-	if in.Department != nil {
-		next.DepartmentID = *in.Department
+	if in.Department.Present {
+		next.DepartmentID = in.Department.Value
 		if e = q.validDepartment(next.DepartmentID); e != nil {
 			return Record{}, e
 		}
@@ -263,9 +264,9 @@ func (q *request) updateRecord(m, id string, in resourceInput, action string) (R
 	if !CanWrite(q.p, m, action, old, d) || !CanWrite(q.p, m, action, next, d) {
 		return Record{}, forbidden()
 	}
-	if m == "tickets" {
-		if status, ok := d["status"]; ok && status != old.Data["status"] && !validTransition(stringValue(old.Data["status"]), stringValue(status)) {
-			return Record{}, validation("Invalid ticket status transition")
+	if policy, exists := policies[m]; exists && policy.Change != nil {
+		if e = policy.Change(old, d); e != nil {
+			return Record{}, e
 		}
 	}
 	if _, e = q.tx.Exec(q.ctx(), `UPDATE resources SET owner_id=$1,department_id=$2,data=$3,version=version+1,updated_at=now() WHERE id=$4 AND tenant_id=$5 AND version=$6`, next.OwnerID, nullable(next.DepartmentID), jsonBytes(next.Data), id, q.p.TenantID, in.Version); e != nil {
@@ -303,40 +304,6 @@ func deleteResource(q *request) (any, error) {
 		return nil, e
 	}
 	return map[string]any{"deleted": true}, q.audit("delete", m, id, map[string]any{"version": version})
-}
-func validTransition(from, to string) bool {
-	edges := map[string][]string{"open": {"in_progress"}, "in_progress": {"resolved"}, "resolved": {"closed", "in_progress"}, "closed": {"open"}}
-	for _, s := range edges[from] {
-		if to == s {
-			return true
-		}
-	}
-	return false
-}
-func transitionResource(q *request) (any, error) {
-	m, e := q.module()
-	if e != nil {
-		return nil, e
-	}
-	if m != "tickets" {
-		return nil, notFound()
-	}
-	id, e := q.id()
-	if e != nil {
-		return nil, e
-	}
-	var in struct {
-		Version int    `json:"version"`
-		Status  string `json:"status"`
-	}
-	if e = q.decode(&in); e != nil {
-		return nil, e
-	}
-	r, e := q.updateRecord(m, id, resourceInput{Version: in.Version, Data: map[string]any{"status": in.Status}}, "update")
-	if e != nil {
-		return nil, e
-	}
-	return q.visible(m, "read", r), nil
 }
 func safeFieldKeys(m string, d map[string]any) []string {
 	out := []string{}
@@ -378,5 +345,9 @@ func dashboard(q *request) (any, error) {
 			audit = audit[:10]
 		}
 	}
-	return map[string]any{"counts": counts, "recent_activity": audit}, nil
+	workload, e := q.workload()
+	if e != nil {
+		return nil, e
+	}
+	return map[string]any{"counts": counts, "recent_activity": audit, "workload": workload}, nil
 }

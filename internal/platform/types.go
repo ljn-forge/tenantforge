@@ -2,7 +2,8 @@ package platform
 
 import (
 	"encoding/json"
-	"time"
+
+	"github.com/ljn-forge/tenantforge/extension"
 )
 
 type Condition struct {
@@ -20,34 +21,10 @@ type Grant struct {
 	UnmaskFields  []string    `json:"unmask_fields,omitempty"`
 	Conditions    []Condition `json:"conditions,omitempty"`
 }
-type Field struct {
-	Key       string   `json:"key"`
-	Label     string   `json:"label"`
-	LabelEN   string   `json:"label_en"`
-	Type      string   `json:"type"`
-	Required  bool     `json:"required,omitempty"`
-	Sensitive bool     `json:"sensitive,omitempty"`
-	Readonly  bool     `json:"readonly,omitempty"`
-	Options   []string `json:"options,omitempty"`
-}
-type Module struct {
-	Key         string   `json:"key"`
-	Label       string   `json:"label"`
-	LabelEN     string   `json:"label_en"`
-	Description string   `json:"description"`
-	Fields      []Field  `json:"fields"`
-	Actions     []string `json:"actions"`
-}
-type Record struct {
-	ID           string         `json:"id"`
-	TenantID     string         `json:"tenant_id"`
-	OwnerID      string         `json:"owner_id"`
-	DepartmentID string         `json:"department_id"`
-	Version      int            `json:"version"`
-	Data         map[string]any `json:"data"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-}
+type Field = extension.Field
+type Module = extension.Module
+type Record = extension.Record
+type Capabilities = extension.Capabilities
 type Principal struct {
 	MustChangePassword                              bool
 	ID, TenantID, DepartmentID, MemberID, SessionID string

@@ -120,6 +120,13 @@ func (q *request) sqlPage(selectSQL, from, where, order string, b *predicate) (p
 	limit := b.arg(size)
 	offset := b.arg((page - 1) * size)
 	rs, e := q.rows(selectSQL+" "+from+" WHERE "+where+" ORDER BY "+order+" LIMIT "+limit+" OFFSET "+offset, b.Args...)
+	for i, row := range rs {
+		if strings.HasPrefix(q.r.URL.Path, "/api/v1/jobs") {
+			rs[i] = q.publicJob(row)
+		} else {
+			q.decorateControlRow(row)
+		}
+	}
 	return paged{rs, map[string]int{"page": page, "page_size": size, "total": total}}, e
 }
 func decodeRecords(rs []map[string]any) ([]storedRecord, error) {

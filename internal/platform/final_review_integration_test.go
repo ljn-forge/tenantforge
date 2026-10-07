@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -115,11 +116,25 @@ func TestDeleteTerminalJobReleasesArtifactQuota(t *testing.T) {
 	j := asMap(f.call("POST", "/resources/tickets/export", map[string]any{"columns": []string{"title"}}, 200)["data"])
 	id := j["id"].(string)
 	f.awaitJob(id)
+	var key string
+	if e := f.admin.QueryRow(context.Background(), "SELECT result_key FROM jobs WHERE id=$1", id).Scan(&key); e != nil || key == "" {
+		t.Fatal("export artifact key not persisted")
+	}
 	f.call("DELETE", "/jobs/"+id, nil, 200)
 	f.call("GET", "/jobs/"+id, nil, 404)
 	var n int
-	if e := f.admin.QueryRow(context.Background(), "SELECT count(*) FROM storage_gc").Scan(&n); e != nil || n != 1 {
-		t.Fatal("artifact cleanup not durable")
+	if e := f.admin.QueryRow(context.Background(), "SELECT count(*) FROM storage_gc WHERE storage_key=$1", key).Scan(&n); e != nil {
+		t.Fatal(e)
+	}
+	if n != 1 {
+		stream, e := f.app.storage().Open(context.Background(), key)
+		if e == nil {
+			stream.Close()
+			t.Fatal("artifact neither queued nor collected")
+		}
+		if !errors.Is(e, os.ErrNotExist) {
+			t.Fatal("artifact absence not proven")
+		}
 	}
 }
 func TestDefaultAdministratorGateAndDirectUsers(t *testing.T) {

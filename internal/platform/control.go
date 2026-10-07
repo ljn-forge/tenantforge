@@ -233,7 +233,7 @@ func (q *request) replaceRoles(member string, roles []string) error {
 	return nil
 }
 func (q *request) guardFinalOwner(member string, newStatus string, roleIDs []string) error {
-	if _, e := q.tx.Exec(q.ctx(), "SELECT id FROM tenants WHERE id=$1 FOR UPDATE", q.p.TenantID); e != nil {
+	if e := q.lockInvariant(); e != nil {
 		return e
 	}
 	var isOwner bool
@@ -463,7 +463,7 @@ func departments(q *request) (any, error) {
 	if search := q.r.URL.Query().Get("q"); search != "" {
 		where += " AND d.name ILIKE " + b.arg("%"+search+"%")
 	}
-	return q.sqlPage("SELECT d.id::text,d.name,d.parent_id::text", "FROM departments d", where, "d.name,d.id", b)
+	return q.sqlPage("SELECT d.id::text,d.name,d.parent_id::text,d.created_by::text _cap_owner", "FROM departments d", where, "d.name,d.id", b)
 }
 func createDepartment(q *request) (any, error) {
 	var in struct {
@@ -493,7 +493,7 @@ func createDepartment(q *request) (any, error) {
 	if e := q.audit("create", "departments", id, map[string]any{"name": in.Name}); e != nil {
 		return nil, e
 	}
-	return q.one("SELECT id::text,name,parent_id::text FROM departments WHERE id=$1 AND tenant_id=$2", id, q.p.TenantID)
+	return q.one("SELECT id::text,name,parent_id::text,created_by::text _cap_owner FROM departments WHERE id=$1 AND tenant_id=$2", id, q.p.TenantID)
 }
 func patchDepartment(q *request) (any, error) {
 	id, e := q.id()
@@ -514,7 +514,7 @@ func patchDepartment(q *request) (any, error) {
 	if !Allowed(q.p, "departments", "update", depRow) {
 		return nil, forbidden()
 	}
-	if _, e = q.tx.Exec(q.ctx(), "SELECT id FROM tenants WHERE id=$1 FOR UPDATE", q.p.TenantID); e != nil {
+	if e = q.lockInvariant(); e != nil {
 		return nil, e
 	}
 	if in.Name != nil && (strings.TrimSpace(*in.Name) == "" || len(*in.Name) > 120) {
@@ -558,7 +558,7 @@ func patchDepartment(q *request) (any, error) {
 	if e = q.audit("update", "departments", id, map[string]any{"fields": []string{"name", "parent_id"}}); e != nil {
 		return nil, e
 	}
-	return q.one("SELECT id::text,name,parent_id::text FROM departments WHERE tenant_id=$1 AND id=$2", q.p.TenantID, id)
+	return q.one("SELECT id::text,name,parent_id::text,created_by::text _cap_owner FROM departments WHERE tenant_id=$1 AND id=$2", q.p.TenantID, id)
 }
 func deleteDepartment(q *request) (any, error) {
 	id, e := q.id()
@@ -582,7 +582,7 @@ func deleteDepartment(q *request) (any, error) {
 	return map[string]any{"deleted": true}, q.audit("delete", "departments", id, map[string]any{})
 }
 
-const roleSelect = "SELECT id::text,name,description,builtin,grants FROM roles"
+const roleSelect = "SELECT id::text,name,description,builtin,grants,created_by::text _cap_owner FROM roles"
 
 func roles(q *request) (any, error) {
 	if e := q.require("roles", "read"); e != nil {
@@ -768,7 +768,7 @@ func invitations(q *request) (any, error) {
 	if search := q.r.URL.Query().Get("q"); search != "" {
 		where += " AND i.email ILIKE " + b.arg("%"+search+"%")
 	}
-	return q.sqlPage("SELECT i.id::text,i.email,coalesce(i.department_id::text,'') department_id,i.role_ids,i.expires_at,i.accepted_at,CASE WHEN i.accepted_at IS NOT NULL THEN 'accepted' WHEN i.expires_at<now() THEN 'expired' ELSE 'pending' END status,i.created_at", "FROM invitations i", where, "i.created_at DESC,i.id", b)
+	return q.sqlPage("SELECT i.id::text,i.created_by::text _cap_owner,i.email,coalesce(i.department_id::text,'') department_id,i.role_ids,i.expires_at,i.accepted_at,CASE WHEN i.accepted_at IS NOT NULL THEN 'accepted' WHEN i.expires_at<now() THEN 'expired' ELSE 'pending' END status,i.created_at", "FROM invitations i", where, "i.created_at DESC,i.id", b)
 }
 func createInvitation(q *request) (any, error) {
 	var in struct {
@@ -815,7 +815,7 @@ func createInvitation(q *request) (any, error) {
 	if e := q.audit("create", "invitations", id, map[string]any{}); e != nil {
 		return nil, e
 	}
-	return q.one("SELECT id::text,email,department_id::text,role_ids,expires_at,CASE WHEN accepted_at IS NOT NULL THEN 'accepted' WHEN expires_at<now() THEN 'expired' ELSE 'pending' END status,created_at FROM invitations WHERE id=$1 AND tenant_id=$2", id, q.p.TenantID)
+	return q.one("SELECT id::text,created_by::text _cap_owner,email,department_id::text,role_ids,expires_at,CASE WHEN accepted_at IS NOT NULL THEN 'accepted' WHEN expires_at<now() THEN 'expired' ELSE 'pending' END status,created_at FROM invitations WHERE id=$1 AND tenant_id=$2", id, q.p.TenantID)
 }
 func acceptInvitation(q *request) (any, error) {
 	var in struct {
@@ -833,6 +833,9 @@ func acceptInvitation(q *request) (any, error) {
 		return nil, e
 	}
 	q.p.TenantID = tenantID
+	if e := q.lockInvariant(); e != nil {
+		return nil, e
+	}
 	var id, email, dep, inviter string
 	var rolesRaw []byte
 	var expires time.Time
@@ -848,7 +851,7 @@ func acceptInvitation(q *request) (any, error) {
 	if actualEmail != email || !verified {
 		return nil, forbidden()
 	}
-	if e := q.tx.QueryRow(q.ctx(), "SELECT status FROM tenants WHERE id=$1 FOR UPDATE", tenantID).Scan(&status); e != nil || status != "active" {
+	if e := q.tx.QueryRow(q.ctx(), "SELECT status FROM tenants WHERE id=$1 FOR SHARE", tenantID).Scan(&status); e != nil || status != "active" {
 		return nil, forbidden()
 	}
 	if e := q.checkQuota("members", 1); e != nil {

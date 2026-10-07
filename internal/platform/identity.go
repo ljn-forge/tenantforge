@@ -489,8 +489,14 @@ func (q *request) oidcConfig() (*oidc.Provider, *oauth2.Config, error) {
 	return provider, &oauth2.Config{ClientID: c.OIDCClientID, ClientSecret: c.OIDCClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimRight(c.PublicURL, "/") + "/api/v1/auth/oidc/callback", Scopes: []string{oidc.ScopeOpenID, "profile", "email"}}, nil
 }
 func oidcStart(q *request) (any, error) {
+	if e := q.release(); e != nil {
+		return nil, e
+	}
 	_, config, e := q.oidcConfig()
 	if e != nil {
+		return nil, e
+	}
+	if e = q.reopen(); e != nil {
 		return nil, e
 	}
 	state, nonce, verifier := randomToken(), randomToken(), oauth2.GenerateVerifier()
@@ -515,6 +521,9 @@ func oidcCallback(q *request) (any, error) {
 	var nonce, sealed string
 	if e = q.tx.QueryRow(q.ctx(), "DELETE FROM oidc_flows WHERE state_hash=$1 AND expires_at>now() RETURNING nonce,verifier_cipher", digest(state)).Scan(&nonce, &sealed); e != nil {
 		return nil, failure(401, "unauthorized", "Expired identity flow")
+	}
+	if e = q.release(); e != nil {
+		return nil, e
 	}
 	verifier, e := q.app.Config.open(sealed)
 	if e != nil {
@@ -543,6 +552,9 @@ func oidcCallback(q *request) (any, error) {
 	}
 	if e = verified.Claims(&claims); e != nil || !claims.EmailVerified || !emailValid(claims.Email) {
 		return nil, failure(401, "unauthorized", "Verified email required")
+	}
+	if e = q.reopen(); e != nil {
+		return nil, e
 	}
 	claims.Email = strings.ToLower(claims.Email)
 	var userID string

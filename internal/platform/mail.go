@@ -4,11 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/smtp"
 	"strings"
 	"time"
+
+	pgx "github.com/jackc/pgx/v5"
 )
 
 func (a *App) sendOneMail(ctx context.Context) {
@@ -17,6 +20,9 @@ func (a *App) sendOneMail(ctx context.Context) {
 	}
 	tx, e := a.DB.Begin(ctx)
 	if e != nil {
+		if !errors.Is(e, pgx.ErrNoRows) {
+			a.workerOutcome("mail", stageClaim, e)
+		}
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -24,6 +30,9 @@ func (a *App) sendOneMail(ctx context.Context) {
 	var attempts int
 	e = tx.QueryRow(ctx, `SELECT id::text,recipient,payload_cipher,attempts FROM mail_outbox WHERE status='pending' AND attempts<8 AND next_attempt_at<=now() AND (lease_until IS NULL OR lease_until<now()) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&id, &to, &payload, &attempts)
 	if e != nil {
+		if !errors.Is(e, pgx.ErrNoRows) {
+			a.workerOutcome("mail", stageClaim, e)
+		}
 		return
 	}
 	claim := digest(randomToken())
@@ -33,18 +42,27 @@ func (a *App) sendOneMail(ctx context.Context) {
 	if e = tx.Commit(ctx); e != nil {
 		return
 	}
+	stage := stagePrepare
 	plain, e := a.Config.open(payload)
 	var mail map[string]string
 	if e == nil {
 		e = json.Unmarshal([]byte(plain), &mail)
 	}
 	if e == nil {
+		stage = stageDeliver
 		e = a.sendSMTP(ctx, id, to, mail["subject"], mail["body"])
 	}
+	finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+	defer cancel()
+	var update error
 	if e == nil {
-		a.DB.Exec(ctx, "UPDATE mail_outbox SET status='sent',payload_cipher='',lease_until=NULL WHERE id=$1 AND claim_token=$2", id, claim)
+		_, update = a.DB.Exec(finish, "UPDATE mail_outbox SET status='sent',payload_cipher='',lease_until=NULL,error_code='',error_stage='' WHERE id=$1 AND claim_token=$2", id, claim)
 	} else {
-		a.DB.Exec(ctx, "UPDATE mail_outbox SET status=CASE WHEN attempts>=8 THEN 'failed' ELSE 'pending' END,next_attempt_at=now()+($1*interval '30 seconds'),lease_until=NULL WHERE id=$2 AND claim_token=$3", attempts+1, id, claim)
+		_, update = a.DB.Exec(finish, "UPDATE mail_outbox SET status=CASE WHEN attempts>=8 THEN 'failed' ELSE 'pending' END,next_attempt_at=now()+($1*interval '30 seconds'),lease_until=NULL,error_code=$4,error_stage=$5 WHERE id=$2 AND claim_token=$3", attempts+1, id, claim, string(safeDiagnostic(stage, e)), string(stage))
+	}
+	a.workerOutcome("mail", stage, e)
+	if update != nil {
+		a.workerOutcome("mail", stagePublish, update)
 	}
 }
 func (a *App) sendSMTP(ctx context.Context, id, to, subject, body string) error {
@@ -58,6 +76,8 @@ func (a *App) sendSMTP(ctx context.Context, id, to, subject, body string) error 
 		return e
 	}
 	defer conn.Close()
+	stopClose := context.AfterFunc(ctx, func() { conn.Close() })
+	defer stopClose()
 	conn.SetDeadline(time.Now().Add(15 * time.Second))
 	client, e := smtp.NewClient(conn, c.SMTPHost)
 	if e != nil {

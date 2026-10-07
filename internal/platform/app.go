@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -32,27 +31,31 @@ import (
 )
 
 type App struct {
-	closeOnce sync.Once
-	LimitsDB  *pgxpool.Pool
-	storageMu sync.RWMutex
-	wg        sync.WaitGroup
-	DB        *pgxpool.Pool
-	Config    Config
-	Storage   Storage
-	cancel    context.CancelFunc
-	requests  atomic.Uint64
-	failures  atomic.Uint64
+	metricsState *metricsState
+	closeOnce    sync.Once
+	LimitsDB     *pgxpool.Pool
+	storageMu    sync.RWMutex
+	wg           sync.WaitGroup
+	DB           *pgxpool.Pool
+	Config       Config
+	Storage      Storage
+	cancel       context.CancelFunc
+	requests     atomic.Uint64
+	failures     atomic.Uint64
+	activityMu   sync.Mutex
+	activity     map[string]struct{}
 }
 type request struct {
-	app       *App
-	w         http.ResponseWriter
-	r         *http.Request
-	tx        pgx.Tx
-	p         Principal
-	requestID string
-	streamed  bool
-	rollback  []func()
-	commit    []func()
+	public, tenantRequired bool
+	app                    *App
+	w                      http.ResponseWriter
+	r                      *http.Request
+	tx                     pgx.Tx
+	p                      Principal
+	requestID              string
+	streamed               bool
+	rollback               []func()
+	commit                 []func()
 }
 type APIError struct {
 	Status        int
@@ -129,14 +132,14 @@ func New(ctx context.Context, c Config) (*App, error) {
 		return nil, errors.New("limiter database unavailable")
 	}
 	a := &App{DB: pool, LimitsDB: limits, Config: c, Storage: storage, cancel: cancel}
+	a.metricsState = newMetrics(a)
 	if !c.DisableBootstrap {
 		if e = a.bootstrap(ctx); e != nil {
 			a.Close()
 			return nil, e
 		}
 	}
-	a.wg.Add(1)
-	go func() { defer a.wg.Done(); a.workers(workerCtx) }()
+	a.startWorkers(workerCtx)
 	return a, nil
 }
 func (a *App) Close() {
@@ -281,6 +284,7 @@ func (a *App) Handler() http.Handler {
 	add("PATCH /api/v1/resources/{module}/{id}", false, true, updateResource)
 	add("DELETE /api/v1/resources/{module}/{id}", false, true, deleteResource)
 	add("POST /api/v1/resources/{module}/{id}/transition", false, true, transitionResource)
+	add("POST /api/v1/resources/{module}/{id}/actions/{action}", false, true, operateResource)
 	add("POST /api/v1/resources/{module}/export", false, true, exportResources)
 	add("POST /api/v1/resources/{module}/import", false, true, importResources)
 	add("GET /api/v1/files", false, true, listFiles)
@@ -288,6 +292,7 @@ func (a *App) Handler() http.Handler {
 	add("GET /api/v1/files/{id}/download", false, true, downloadFile)
 	add("DELETE /api/v1/files/{id}", false, true, deleteFile)
 	add("GET /api/v1/jobs", false, true, listJobs)
+	add("POST /api/v1/jobs", false, true, createJob)
 	add("GET /api/v1/jobs/{id}", false, true, getJob)
 	add("POST /api/v1/jobs/{id}/retry", false, true, retryJob)
 	add("POST /api/v1/jobs/{id}/cancel", false, true, cancelJob)
@@ -323,6 +328,23 @@ func (a *App) Handler() http.Handler {
 }
 func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		observed := &observedResponseWriter{ResponseWriter: w}
+		w = observed
+		defer func() {
+			if observed.status >= 400 {
+				a.failures.Add(1)
+			}
+			if a.metricsState != nil {
+				a.metricsState.observeHTTP(r.Pattern, r.Method, observed.status, time.Since(start))
+			}
+		}()
+		defer func() {
+			if recover() != nil {
+				slog.Error("HTTP operation panic (details redacted)")
+				writeError(w, w.Header().Get("X-Request-ID"), failure(500, "internal", "Service operation failed"))
+			}
+		}()
 		ctx, cancel := context.WithTimeout(r.Context(), a.Config.RequestTimeout)
 		defer cancel()
 		r = r.WithContext(ctx)
@@ -336,13 +358,14 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 			writeError(w, id, failure(503, "unavailable", "Service unavailable"))
 			return
 		}
-		defer tx.Rollback(r.Context())
-		req := &request{app: a, w: w, r: r, tx: tx, requestID: id}
+		req := &request{app: a, w: w, r: r, tx: tx, requestID: id, public: public, tenantRequired: tenant}
 		committed := false
 		defer func() {
 			if !committed {
 				rollbackCtx, rollbackCancel := context.WithTimeout(context.Background(), 2*time.Second)
-				tx.Rollback(rollbackCtx)
+				if req.tx != nil {
+					req.tx.Rollback(rollbackCtx)
+				}
 				rollbackCancel()
 				for _, f := range req.rollback {
 					f()
@@ -356,7 +379,7 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 				return
 			}
 		}
-		if req.p.MustChangePassword && r.URL.Path != "/api/v1/auth/me" && r.URL.Path != "/api/v1/auth/csrf" && r.URL.Path != "/api/v1/auth/password" && r.URL.Path != "/api/v1/auth/logout" {
+		if req.passwordGate() != nil {
 			writeError(w, id, failure(403, "password_change_required", "Change the initial password before continuing"))
 			return
 		}
@@ -373,12 +396,28 @@ func (a *App) wrap(public, tenant bool, h func(*request) (any, error)) http.Hand
 				return
 			}
 		}
+		defer func() {
+			if r.MultipartForm != nil {
+				r.MultipartForm.RemoveAll()
+			}
+		}()
+		if r.Method != "GET" && r.Method != "HEAD" {
+			if e = req.prepareBody(); e != nil {
+				writeError(w, id, e)
+				return
+			}
+		}
+		if r.MultipartForm != nil {
+			defer r.MultipartForm.RemoveAll()
+		}
 		data, e := h(req)
 		if e == nil {
-			e = tx.Commit(r.Context())
+			if req.tx != nil {
+				e = req.tx.Commit(r.Context())
+				req.tx = nil
+			}
 		}
 		if e != nil {
-			a.failures.Add(1)
 			if !req.streamed {
 				writeError(w, id, e)
 			}
@@ -467,6 +506,7 @@ func (q *request) one(sql string, args ...any) (map[string]any, error) {
 	if len(r) == 0 {
 		return nil, notFound()
 	}
+	q.decorateControlRow(r[0])
 	return r[0], nil
 }
 func jsonBytes(v any) []byte { b, _ := json.Marshal(v); return b }
@@ -510,12 +550,16 @@ func (q *request) authenticate() error {
 	if e != nil {
 		return failure(401, "unauthorized", "Sign in required")
 	}
-	e = q.tx.QueryRow(q.ctx(), `SELECT s.id::text,u.id::text,u.platform_admin,u.must_change_password FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()`, digest(c.Value)).Scan(&q.p.SessionID, &q.p.ID, &q.p.PlatformAdmin, &q.p.MustChangePassword)
+	fence := ""
+	if !strings.HasPrefix(q.r.URL.Path, "/api/v1/auth/") {
+		fence = " FOR SHARE OF s,u"
+	}
+	e = q.tx.QueryRow(q.ctx(), `SELECT s.id::text,u.id::text,u.platform_admin,u.must_change_password FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()`+fence, digest(c.Value)).Scan(&q.p.SessionID, &q.p.ID, &q.p.PlatformAdmin, &q.p.MustChangePassword)
 	if e != nil {
 		return failure(401, "unauthorized", "Sign in required")
 	}
-	_, e = q.tx.Exec(q.ctx(), "UPDATE sessions SET last_seen_at=now() WHERE id=$1", q.p.SessionID)
-	return e
+	q.app.touchSession(q.p.SessionID)
+	return nil
 }
 func (q *request) setTenant(id string) error {
 	if !validID(id) {
@@ -528,11 +572,14 @@ func (q *request) loadTenant(id string) error {
 	if e := q.setTenant(id); e != nil {
 		return e
 	}
-	var status string
-	lock := " FOR SHARE OF m"
-	if q.r.Method != "GET" && q.r.Method != "HEAD" {
-		lock = " FOR SHARE OF m FOR UPDATE OF t"
+	q.p.TenantID = id
+	if q.needsInvariantLock() {
+		if e := q.lockInvariant(); e != nil {
+			return e
+		}
 	}
+	var status string
+	lock := " FOR SHARE OF m,t"
 	e := q.tx.QueryRow(q.ctx(), `SELECT m.id::text,coalesce(m.department_id::text,''),t.status FROM memberships m JOIN tenants t ON t.id=m.tenant_id WHERE m.tenant_id=$1 AND m.user_id=$2 AND m.status='active' `+lock, id, q.p.ID).Scan(&q.p.MemberID, &q.p.DepartmentID, &status)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return forbidden()
@@ -567,7 +614,7 @@ func (q *request) loadTenant(id string) error {
 		return e
 	}
 	q.p.Departments = map[string]string{}
-	rows, e := q.rows("SELECT id::text,coalesce(parent_id::text,'') parent_id FROM departments WHERE tenant_id=$1", id)
+	rows, e := q.rows("SELECT id::text,coalesce(parent_id::text,'') parent_id FROM departments WHERE tenant_id=$1 ORDER BY id FOR SHARE", id)
 	if e != nil {
 		return e
 	}
@@ -629,19 +676,12 @@ func (q *request) paginate(rows []map[string]any) paged {
 	}
 	return paged{rows[start:end], map[string]int{"page": page, "page_size": size, "total": total}}
 }
-func (a *App) metrics(w http.ResponseWriter, r *http.Request) {
-	host, _, _ := net.SplitHostPort(r.RemoteAddr)
-	ip := net.ParseIP(host)
-	if !a.Config.MetricsPublic && (ip == nil || !ip.IsLoopback()) {
-		writeError(w, "", forbidden())
-		return
-	}
-	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	fmt.Fprintf(w, "# TYPE tenantforge_requests_total counter\ntenantforge_requests_total %d\n# TYPE tenantforge_rejected_total counter\ntenantforge_rejected_total %d\n", a.requests.Load(), a.failures.Load())
-}
 func (q *request) checkQuota(kind string, increment int64) error {
 	var quotas []byte
-	if e := q.tx.QueryRow(q.ctx(), "SELECT quotas FROM tenants WHERE id=$1 FOR UPDATE", q.p.TenantID).Scan(&quotas); e != nil {
+	if e := q.lockInvariant(); e != nil {
+		return e
+	}
+	if e := q.tx.QueryRow(q.ctx(), "SELECT quotas FROM tenants WHERE id=$1", q.p.TenantID).Scan(&quotas); e != nil {
 		return e
 	}
 	limits := map[string]int64{}
@@ -653,7 +693,7 @@ func (q *request) checkQuota(kind string, increment int64) error {
 		return nil
 	}
 	var used int64
-	sqls := map[string]string{"records": "SELECT count(*) FROM resources WHERE tenant_id=$1", "members": "SELECT count(*) FROM memberships WHERE tenant_id=$1", "storage_bytes": "SELECT (SELECT coalesce(sum(size),0) FROM files WHERE tenant_id=$1)+(SELECT coalesce(sum(result_bytes),0) FROM jobs WHERE tenant_id=$1)", "jobs": "SELECT count(*) FROM jobs WHERE tenant_id=$1 AND status IN ('pending','running')"}
+	sqls := map[string]string{"records": "SELECT count(*) FROM resources WHERE tenant_id=$1", "members": "SELECT count(*) FROM memberships WHERE tenant_id=$1", "storage_bytes": "SELECT (SELECT coalesce(sum(size),0) FROM files WHERE tenant_id=$1)+(SELECT coalesce(sum(result_bytes),0) FROM jobs WHERE tenant_id=$1)+(SELECT coalesce(sum(reservation_bytes),0) FROM storage_gc WHERE tenant_id=$1)", "jobs": "SELECT count(*) FROM jobs WHERE tenant_id=$1 AND status IN ('pending','running')"}
 	s, ok := sqls[kind]
 	if !ok {
 		return validation("Unknown quota")

@@ -77,12 +77,38 @@ func uploadFile(q *request) (any, error) {
 		return nil, failure(503, "unavailable", "Upload could not be read")
 	}
 	key, id := uuid.NewString(), uuid.NewString()
-	if e = q.app.reserveObject(q.ctx(), key, q.p.TenantID); e != nil {
-		return nil, failure(503, "unavailable", "File storage unavailable")
+	if e = q.reserveStorage(key, h.Size); e != nil {
+		return nil, e
 	}
 	q.rollback = append(q.rollback, func() { q.app.deleteOrQueue(key) })
+	if e = q.release(); e != nil {
+		return nil, e
+	}
 	if e = q.app.storage().Put(q.ctx(), key, f, h.Size, ct); e != nil {
 		return nil, failure(503, "unavailable", "File storage unavailable")
+	}
+	if e = q.reopen(); e != nil {
+		return nil, e
+	}
+	actualDep, e := q.ownerDepartment(owner)
+	if e != nil {
+		return nil, e
+	}
+	if e = q.validDepartment(dep); e != nil {
+		return nil, e
+	}
+	if !Allowed(q.p, "files", "create", q.controlRow(owner, dep)) || owner != q.p.ID && !CanAssignMember(q.p, q.controlRow(q.p.ID, q.p.DepartmentID), q.controlRow(owner, actualDep)) {
+		return nil, forbidden()
+	}
+	if e = q.checkQuota("storage_bytes", 0); e != nil {
+		return nil, e
+	}
+	var reserved bool
+	if e = q.tx.QueryRow(q.ctx(), "SELECT EXISTS(SELECT FROM storage_gc WHERE id=$1 AND tenant_id=$2)", key, q.p.TenantID).Scan(&reserved); e != nil {
+		return nil, e
+	}
+	if !reserved {
+		return nil, conflict()
 	}
 	if _, e = q.tx.Exec(q.ctx(), "INSERT INTO files(id,tenant_id,owner_id,department_id,name,size,content_type,storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8)", id, q.p.TenantID, owner, nullable(dep), name, h.Size, ct, key); e != nil {
 		return nil, e
@@ -90,7 +116,7 @@ func uploadFile(q *request) (any, error) {
 	if e = q.audit("create", "files", id, map[string]any{"size": h.Size}); e != nil {
 		return nil, e
 	}
-	if _, e = q.tx.Exec(q.ctx(), "DELETE FROM storage_gc WHERE id=$1", key); e != nil {
+	if e = q.consumeReservation(key); e != nil {
 		return nil, e
 	}
 	return q.one(fileSelect+" FROM files WHERE tenant_id=$1 AND id=$2", q.p.TenantID, id)
@@ -110,11 +136,30 @@ func downloadFile(q *request) (any, error) {
 	if !Allowed(q.p, "files", "read", q.controlRow(f["owner_id"].(string), f["department_id"].(string))) {
 		return nil, notFound()
 	}
+	if e = q.release(); e != nil {
+		return nil, e
+	}
 	stream, e := q.app.storage().Open(q.ctx(), f["storage_key"].(string))
 	if e != nil {
 		return nil, failure(503, "unavailable", "File storage unavailable")
 	}
 	defer stream.Close()
+	if e = q.reopen(); e != nil {
+		return nil, e
+	}
+	f, e = q.file(id)
+	if e != nil {
+		return nil, e
+	}
+	if !Allowed(q.p, "files", "read", q.controlRow(f["owner_id"].(string), f["department_id"].(string))) {
+		return nil, notFound()
+	}
+	if e = q.audit("download", "files", id, map[string]any{}); e != nil {
+		return nil, e
+	}
+	if e = q.release(); e != nil {
+		return nil, e
+	}
 	q.streamed = true
 	q.w.Header().Set("Content-Type", f["content_type"].(string))
 	q.w.Header().Set("Content-Length", fmt.Sprint(f["size"]))

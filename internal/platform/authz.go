@@ -17,10 +17,10 @@ import (
 var Scopes = []string{"self", "department", "department_tree", "selected_departments", "tenant"}
 var resourceActions = map[string][]string{"members": {"read", "create", "update", "assign"}, "departments": {"read", "create", "update", "delete"}, "roles": {"read", "create", "update", "delete"}, "invitations": {"read", "create"}, "audit": {"read", "export"}, "files": {"read", "create", "delete"}, "jobs": {"read", "update"}}
 var Modules = []Module{
-	{Key: "tickets", Label: "工单", LabelEN: "Tickets", Description: "Scoped service tickets", Actions: []string{"read", "create", "update", "delete", "assign", "export", "import"}, Fields: []Field{{Key: "title", Label: "标题", LabelEN: "Title", Type: "string", Required: true}, {Key: "description", Label: "描述", LabelEN: "Description", Type: "text"}, {Key: "status", Label: "状态", LabelEN: "Status", Type: "enum", Options: []string{"open", "in_progress", "resolved", "closed"}}, {Key: "priority", Label: "优先级", LabelEN: "Priority", Type: "enum", Options: []string{"low", "normal", "high", "urgent"}}, {Key: "customer_email", Label: "客户邮箱", LabelEN: "Customer email", Type: "string", Sensitive: true}, {Key: "internal_notes", Label: "内部备注", LabelEN: "Internal notes", Type: "text", Sensitive: true}}},
-	{Key: "dictionaries", Label: "字典", LabelEN: "Dictionaries", Description: "Tenant dictionary entries", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "key", Label: "键", LabelEN: "Key", Type: "string", Required: true}, {Key: "label", Label: "标签", LabelEN: "Label", Type: "string", Required: true}, {Key: "value", Label: "值", LabelEN: "Value", Type: "text"}, {Key: "category", Label: "类别", LabelEN: "Category", Type: "string"}, {Key: "enabled", Label: "启用", LabelEN: "Enabled", Type: "boolean"}}},
-	{Key: "settings", Label: "设置", LabelEN: "Settings", Description: "Tenant settings (no integration credentials)", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "key", Label: "键", LabelEN: "Key", Type: "string", Required: true}, {Key: "value", Label: "值", LabelEN: "Value", Type: "text"}, {Key: "description", Label: "说明", LabelEN: "Description", Type: "text"}}},
-	{Key: "notifications", Label: "通知", LabelEN: "Notifications", Description: "Tenant announcements", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "title", Label: "标题", LabelEN: "Title", Type: "string", Required: true}, {Key: "body", Label: "正文", LabelEN: "Body", Type: "text"}, {Key: "read", Label: "已读", LabelEN: "Read", Type: "boolean"}}},
+	{Key: "tickets", Label: "工单", LabelEN: "Tickets", Description: "管理服务工单及处理进度", DescriptionEN: "Manage service tickets and their progress", Actions: []string{"read", "create", "update", "delete", "assign", "export", "import"}, Fields: []Field{{Key: "title", Label: "标题", LabelEN: "Title", Type: "string", Required: true}, {Key: "description", Label: "描述", LabelEN: "Description", Type: "text"}, {Key: "status", Label: "状态", LabelEN: "Status", Type: "enum", Options: []string{"open", "in_progress", "resolved", "closed"}}, {Key: "priority", Label: "优先级", LabelEN: "Priority", Type: "enum", Options: []string{"low", "normal", "high", "urgent"}}, {Key: "customer_email", Label: "客户邮箱", LabelEN: "Customer email", Type: "string", Sensitive: true}, {Key: "internal_notes", Label: "内部备注", LabelEN: "Internal notes", Type: "text", Sensitive: true}}},
+	{Key: "dictionaries", Label: "字典", LabelEN: "Dictionaries", Description: "管理业务字典与选项", DescriptionEN: "Manage business dictionaries and options", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "key", Label: "键", LabelEN: "Key", Type: "string", Required: true}, {Key: "label", Label: "标签", LabelEN: "Label", Type: "string", Required: true}, {Key: "value", Label: "值", LabelEN: "Value", Type: "text"}, {Key: "category", Label: "类别", LabelEN: "Category", Type: "string"}, {Key: "enabled", Label: "启用", LabelEN: "Enabled", Type: "boolean"}}},
+	{Key: "settings", Label: "设置", LabelEN: "Settings", Description: "管理当前租户的业务设置", DescriptionEN: "Manage settings for the current workspace", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "key", Label: "键", LabelEN: "Key", Type: "string", Required: true}, {Key: "value", Label: "值", LabelEN: "Value", Type: "text"}, {Key: "description", Label: "说明", LabelEN: "Description", Type: "text"}}},
+	{Key: "notifications", Label: "通知", LabelEN: "Notifications", Description: "管理租户公告与通知", DescriptionEN: "Manage workspace announcements and notifications", Actions: []string{"read", "create", "update", "delete", "export", "import"}, Fields: []Field{{Key: "title", Label: "标题", LabelEN: "Title", Type: "string", Required: true}, {Key: "body", Label: "正文", LabelEN: "Body", Type: "text"}, {Key: "read", Label: "已读", LabelEN: "Read", Type: "boolean"}}},
 }
 
 func Descriptor(key string) (Module, bool) {
@@ -31,10 +31,15 @@ func Descriptor(key string) (Module, bool) {
 	}
 	return Module{}, false
 }
+
+var controlLabels = map[string][2]string{
+	"members": {"用户", "Users"}, "departments": {"部门", "Departments"}, "roles": {"角色", "Roles"}, "invitations": {"邀请", "Invitations"}, "audit": {"审计日志", "Audit log"}, "files": {"文件", "Files"}, "jobs": {"后台任务", "Background jobs"},
+}
+
 func registry() []Module {
 	out := resourceModules()
 	for _, k := range []string{"members", "departments", "roles", "invitations", "audit", "files", "jobs"} {
-		out = append(out, Module{Key: k, Label: k, LabelEN: k, Actions: resourceActions[k], Fields: []Field{}})
+		out = append(out, Module{Key: k, Label: controlLabels[k][0], LabelEN: controlLabels[k][1], Actions: resourceActions[k], Fields: []Field{}})
 	}
 	return out
 }
@@ -363,15 +368,9 @@ func ValidateData(key string, d map[string]any, create bool) (map[string]any, er
 				}
 			}
 		}
-		if key == "tickets" {
-			if status, ok := out["status"]; ok && status != "open" {
-				return nil, errors.New("new tickets must start open")
-			}
-			if _, ok = out["status"]; !ok {
-				out["status"] = "open"
-			}
-			if _, ok = out["priority"]; !ok {
-				out["priority"] = "normal"
+		if policy, exists := policies[key]; exists && policy.Create != nil {
+			if e := policy.Create(out); e != nil {
+				return nil, e
 			}
 		}
 	}
