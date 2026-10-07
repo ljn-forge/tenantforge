@@ -37,5 +37,5 @@ Files: `docs`, `examples`, root scripts/config/CI.
 - [x] Add deterministic end-to-end and concurrency verification, plus visual evidence. Ensure tests touch only isolated databases and retain interrupted-process safeguards.
 - [x] Record upstream choices/licenses/security compatibility; update notices for changed dependencies.
 - [x] Run full integration/browser/image/backup-recovery acceptance after independent spec and code-quality reviews. Resolve all findings and rehearse migration of the real snapshot with its original administrator preserved.
-- [ ] Integrate locally, restart the main app and verify live readiness without resetting the existing administrator.
-- [ ] Final delivery links screenshots and observed verification and describes any material limitation without calling incomplete work finished.
+- [x] Integrate locally, restart the main app and verify live readiness without resetting the existing administrator.
+- [x] Final delivery links screenshots and observed verification and describes any material limitation without calling incomplete work finished.

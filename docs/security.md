@@ -28,7 +28,7 @@ Audit stores changed field names and ownership/version metadata rather than raw 
 
 ## Accounts and requests
 
-Opaque session tokens are hashed server-side and kept in HttpOnly SameSite=Lax cookies; frontend storage contains only tenant selection. Mutation requests require session-bound CSRF tokens and an allowed origin. Membership/grant changes and revocation take effect on subsequent requests and job execution. MFA secrets and queued email payloads are encrypted by TF_MASTER_KEY; reset tokens and one-time recovery codes are hashed.
+Opaque session tokens are hashed server-side and kept in HttpOnly SameSite=Lax cookies. Browser preferences contain only tenant/user selection and locale/theme; credentials and grants are not persisted there. Mutation requests require session-bound CSRF tokens and an allowed origin. Membership/grant changes and revocation take effect on subsequent requests and job execution. MFA secrets and queued email payloads are encrypted by TF_MASTER_KEY; reset tokens and one-time recovery codes are hashed.
 
 Production cookies require HTTPS configuration. Responses include CSP, frame denial, MIME sniffing protection, referrer policy and restrictive browser permissions. Error responses are generic and include request IDs; logs omit token-bearing query strings and raw backend errors.
 

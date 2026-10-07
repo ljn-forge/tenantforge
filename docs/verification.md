@@ -13,13 +13,13 @@ results, not claims about a future deployment or long-term production use.
 | Fresh browser acceptance | 3 tests passed in 28.5s against fresh persisted PostgreSQL | `make browser`; `web/e2e/product.spec.ts`, `web/e2e/quality.spec.ts` |
 | Python backup, isolation, environment and cancellation regressions | 15 tests passed | `python3 -m unittest discover -s tests -p 'test_*.py'` |
 | OpenAPI contract | All 62 registered API operations match the specification; OpenAPI 3.1 validation passed | `docs/openapi.json`; Redocly CLI 2.59.0 with minimal rules |
-| Container distribution | Final image built; restored upgrade instance readiness healthy | `docker compose --profile app build`; isolated schema upgrade drill |
+| Container distribution | Final image built; live migration to 010 and readiness healthy at port 8090 | `docker compose --profile app build`; after stopping old app writes, `docker compose --profile app up -d --no-build --wait` |
 | Default administrator installation | Fresh `admin` sign-in, required initial password change and restricted-user administration passed | Fresh isolated browser fixture; existing administrator password hash/state preserved by upgrade comparison |
-| Runtime boundary | UID 10001; owner/migration/test credentials absent; PostgreSQL runtime role is neither superuser nor BYPASSRLS | Actual container environment keys and PostgreSQL role flags inspected without printing secrets |
+| Runtime boundary | UID 10001; owner/migration/test credentials absent; PostgreSQL runtime role is neither superuser nor BYPASSRLS, owns no public tables; all eight declared tenant tables force RLS | Actual final container environment keys, PostgreSQL role/table flags inspected without printing secrets |
 | Native backup and recovery | Eleven table fingerprints and every local object checksum match; recovered MFA sign-in, permissions and authenticated file download passed | `make recovery` after `make browser` |
 | Container backup | Actual app stopped, PostgreSQL/custom dump and container data captured, app restarted healthy | `python3 scripts/backup.py` |
-| SIGTERM during recovery | Nonzero exit, browser MFA disabled, both detached verification servers stopped | Real interrupted drill plus `tests/test_recovery.py` startup-interruption regression |
-| Browser reset with another active database role | Reset refused; existing fixture users preserved | Actual owner-role connection to `tenantforge_browser`; reset guard checks all client backends |
+| SIGTERM during recovery | Earlier baseline drill: nonzero exit, browser MFA disabled, both detached verification servers stopped; current regressions passed | Earlier real interrupted drill plus `tests/test_recovery.py` startup-interruption regression |
+| Browser reset with another active database role | Earlier baseline drill: reset refused and users preserved; unchanged all-role guard still covered by current regressions | Owner-role connection to `tenantforge_browser`; reset guard checks all client backends |
 | npm dependency audit | Zero reported vulnerabilities, including development dependencies | `cd web && npm audit --audit-level=high` |
 | Go vulnerability scan | Zero vulnerable called symbols or imported packages; one advisory in an unused dependency package | `govulncheck` v1.8.0; see scope below |
 | Independent source review | Backend and frontend SPEC/QUALITY reviews passed, including tenant reload and cancellation addenda | `quality_integration_test.go`, `final_review_integration_test.go`, extension and frontend/Python suites |
@@ -49,12 +49,22 @@ matched the unchanged original database, including administrator password data;
 the existing administrator had already changed the initial password and was
 not reset.
 
+The approved source was then fast-forwarded into local `main`. The old app was
+stopped before migration, and the final image started successfully on port 8090.
+Live health/readiness and the administrator login page passed; the latter has
+no workspace creation wizard and produced no browser runtime errors. All eleven
+existing table fingerprints still matched the pre-upgrade baseline. Final
+`make check` in the merged checkout passed, including all 49 frontend tests.
+The existing account password remains unchanged; fresh-install login is covered
+by the separate browser fixture.
+
 Visual artifacts use authorized, persisted acceptance fixtures, not synthetic
 counts: [Chinese dashboard](assets/dashboard-zh.png),
 [Chinese permission matrix](assets/roles-zh.png),
 [record/field scope editor](assets/roles-grant-zh.png),
 [dark dashboard](assets/dashboard-dark.png),
-[mobile light](assets/mobile-light.png) and [mobile dark](assets/mobile-dark.png).
+[mobile light](assets/mobile-light.png), [mobile dark](assets/mobile-dark.png)
+and the [live administrator login](assets/login.png).
 Final Chinese date formatting and mobile overflow were also checked in an
 independent browser context after the cosmetic date change.
 
