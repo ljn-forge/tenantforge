@@ -1,0 +1,15 @@
+.git
+.env
+.data
+.backups
+.tools
+.worktrees
+__pycache__
+.playwright-mcp
+bin
+web/node_modules
+web/dist
+web/test-results
+web/playwright-report
+coverage.out
+*.log

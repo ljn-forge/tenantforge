@@ -1,0 +1,88 @@
+name: tenantforge
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7
+    environment:
+      POSTGRES_DB: tenantforge
+      POSTGRES_USER: tenantforge_owner
+      POSTGRES_PASSWORD: ${TF_DB_OWNER_PASSWORD:?Run scripts/init-env.py first}
+      TF_DB_APP_PASSWORD: ${TF_DB_APP_PASSWORD:?Run scripts/init-env.py first}
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/10-runtime-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenantforge_owner -d tenantforge"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
+    ports:
+      - "127.0.0.1:8029:8025"
+      - "127.0.0.1:1039:1025"
+  migrate:
+    image: tenantforge:local
+    build: .
+    profiles: [app]
+    command: [migrate]
+    environment:
+      TF_DATABASE_URL: postgresql://tenantforge_app:${TF_DB_APP_PASSWORD}@postgres:5432/tenantforge?sslmode=disable
+      TF_MIGRATION_DATABASE_URL: postgresql://tenantforge_owner:${TF_DB_OWNER_PASSWORD}@postgres:5432/tenantforge?sslmode=disable
+      TF_MASTER_KEY: ${TF_MASTER_KEY:?Run scripts/init-env.py first}
+      TF_DATA_DIR: /data
+    depends_on:
+      postgres:
+        condition: service_healthy
+  app:
+    image: tenantforge:local
+    build: .
+    profiles: [app]
+    command: [serve]
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      TF_DATABASE_URL: postgresql://tenantforge_app:${TF_DB_APP_PASSWORD}@postgres:5432/tenantforge?sslmode=disable
+      TF_LISTEN: 0.0.0.0:8090
+      TF_PUBLIC_URL: ${TF_CONTAINER_PUBLIC_URL:-http://localhost:8090}
+      TF_COOKIE_SECURE: ${TF_COOKIE_SECURE:-false}
+      TF_MASTER_KEY: ${TF_MASTER_KEY:?Run scripts/init-env.py first}
+      TF_DATA_DIR: /data
+      TF_WEB_DIR: /app/web
+      TF_SMTP_HOST: ${TF_CONTAINER_SMTP_HOST:-mailpit}
+      TF_SMTP_PORT: ${TF_CONTAINER_SMTP_PORT:-1025}
+      TF_SMTP_FROM: ${TF_SMTP_FROM:-tenantforge@localhost}
+      TF_STORAGE_BACKEND: ${TF_STORAGE_BACKEND:-local}
+      TF_S3_ENDPOINT: ${TF_S3_ENDPOINT:-}
+      TF_S3_REGION: ${TF_S3_REGION:-us-east-1}
+      TF_S3_BUCKET: ${TF_S3_BUCKET:-}
+      TF_S3_ACCESS_KEY: ${TF_S3_ACCESS_KEY:-}
+      TF_S3_SECRET_KEY: ${TF_S3_SECRET_KEY:-}
+      TF_INITIAL_ADMIN_USERNAME: ${TF_INITIAL_ADMIN_USERNAME:-admin}
+      TF_INITIAL_ADMIN_PASSWORD: ${TF_INITIAL_ADMIN_PASSWORD:-Admin@123456}
+      TF_INITIAL_ADMIN_EMAIL: ${TF_INITIAL_ADMIN_EMAIL:-admin@tenantforge.local}
+      TF_INITIAL_TENANT_NAME: ${TF_INITIAL_TENANT_NAME:-默认租户}
+      TF_OIDC_ISSUER: ${TF_OIDC_ISSUER:-}
+      TF_OIDC_CLIENT_ID: ${TF_OIDC_CLIENT_ID:-}
+      TF_OIDC_CLIENT_SECRET: ${TF_OIDC_CLIENT_SECRET:-}
+      TF_SMTP_USER: ${TF_SMTP_USER:-}
+      TF_SMTP_PASSWORD: ${TF_SMTP_PASSWORD:-}
+    volumes:
+      - app_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8090/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+volumes:
+  postgres_data:
+  app_data:

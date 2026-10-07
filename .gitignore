@@ -9,3 +9,7 @@ coverage.out
 *.log
 .DS_Store
 .worktrees/
+.tools/
+.backups/
+__pycache__/
+.playwright-mcp/

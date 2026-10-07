@@ -14,13 +14,13 @@ All SQL reads/counts/writes and export/job execution enforce identical predicate
 
 ## Complete product modules
 
-Identity: initialization, login/logout, password changes/recovery, bounded login attempts, TOTP enrollment/confirmation/disable, hashed one-time recovery codes, session listing/revocation, configured OIDC verified callback.
+Identity: automatic empty-only default superadministrator/default tenant initialization, username/email login/logout, mandatory temporary-password change, password recovery, bounded login attempts, TOTP enrollment/confirmation/disable, hashed one-time recovery codes, session listing/revocation, configured OIDC verified callback. The approved entry is administrator login; there is no workspace-creation wizard.
 
-Tenancy: provisioning/status, membership invitations/acceptance, tenant switching, departments/positions, role templates/copy/edit, per-operation scopes/fields, effective permission inspection, tenant configuration and quotas, member suspension/transfer.
+Tenancy: backend provisioning/status, direct administrator-created accounts and role/department assignments, optional membership invitations/acceptance, tenant switching, departments/positions, role templates/copy/edit, per-operation scopes/fields, effective permission inspection, tenant configuration and quotas, member suspension/transfer.
 
 Business platform: registered module descriptors validate data; ticket lifecycle demonstrates create/assignment/transition/closure, concurrent conflict handling, protected customer fields, files, dictionaries/settings, notifications, CSV import and asynchronous export. Extension contract registers fields, actions, migrations and frontend descriptors without changing the core authorization system. Audit, jobs and files are authorized modules too.
 
-Operations: health/readiness, structured redacted logs/request IDs, metrics, durable jobs with leases/bounded retries/cancellation, local files and configured S3-compatible storage, SMTP outbox and local development mailbox, versioned migrations, installation wizard, container deployment, backup/restore, upgrade verification, dependency checks, CI, English/Chinese documentation.
+Operations: health/readiness, structured redacted logs/request IDs, metrics, durable jobs with leases/bounded retries/cancellation and terminal-result deletion, local files and configured S3-compatible storage, SMTP outbox and local development mailbox, versioned migrations, automatic administrator provisioning, container deployment, backup/restore, upgrade verification, dependency checks, CI, English/Chinese documentation.
 
 ## Verification contract
 
