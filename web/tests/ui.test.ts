@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 import RoleEditor from '../src/components/RoleEditor.vue'
 import ActionButton from '../src/components/ActionButton.vue'
@@ -55,7 +55,8 @@ test('action button disappears for an unauthorized operation while read remains 
     expect(wrapper.find('button').exists()).toBe(true)
   })
 })
-test('role editor renders operation scopes independently and requires selected departments', () => {
+test('role editor selects operation scopes independently and requires selected departments', async () => {
+  state.locale = 'en'
   const grants: Grant[] = [
     { resource: 'tickets', action: 'read', scope: 'tenant' },
     { resource: 'tickets', action: 'update', scope: 'selected_departments', department_ids: [] },
@@ -64,9 +65,14 @@ test('role editor renders operation scopes independently and requires selected d
     props: { modelValue: grants, modules: [module], departments: [] },
     global: { plugins: [ElementPlus] },
   })
-  expect(wrapper.findAll('[data-grant]').length).toBe(2)
+  await flushPromises()
+  expect(wrapper.findAll('[data-grant]').length).toBe(1)
+  await wrapper.find('button[aria-label="Tickets · Edit"]').trigger('click')
+  await flushPromises()
   expect(wrapper.text()).toContain('Select at least one department')
-  expect(wrapper.findAll('[data-scope]').length).toBe(2)
+  expect(wrapper.findAll('[data-scope]').length).toBe(1)
+  expect(grants[0]!.scope).toBe('tenant')
+  wrapper.unmount()
 })
 
 test('administrator login submits its actual Element Plus form when the native submit button is clicked', async () => {
@@ -128,4 +134,41 @@ test('administrator login submits its actual Element Plus form when the native s
   wrapper.unmount()
   vi.unstubAllGlobals()
   state.initialized = true
+})
+
+test('invalid second factor shows an error after the sign-in challenge instead of silently ignoring it', async () => {
+  const { createRouter, createMemoryHistory } = await import('vue-router')
+  const { default: AuthView } = await import('../src/views/AuthView.vue')
+  state.locale = 'en'
+  state.initialized = true
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (path: string) =>
+      path.endsWith('/csrf')
+        ? new Response(JSON.stringify({ data: { csrf_token: 'fixture' } }))
+        : new Response(
+            JSON.stringify({ error: { code: 'mfa_required', message: 'Invalid second factor' } }),
+            { status: 403 },
+          ),
+    ),
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/login', component: AuthView },
+      { path: '/', component: { template: '<div />' } },
+      { path: '/reset-password', component: AuthView },
+    ],
+  })
+  await router.push('/login')
+  await router.isReady()
+  const wrapper = mount(AuthView, { global: { plugins: [ElementPlus, router] } })
+  await wrapper.find('form').trigger('submit')
+  await flushPromises()
+  expect(wrapper.text()).toContain('Authenticator code')
+  await wrapper.find('form').trigger('submit')
+  await flushPromises()
+  expect(wrapper.text()).toContain('Invalid second factor')
+  wrapper.unmount()
+  vi.unstubAllGlobals()
 })

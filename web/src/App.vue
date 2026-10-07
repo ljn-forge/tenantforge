@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import en from 'element-plus/es/locale/lang/en'
+import ModuleIcon from './components/ModuleIcon.vue'
+import { Sunny, Moon, ArrowDown } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   state,
@@ -19,6 +21,25 @@ const route = useRoute()
 const router = useRouter()
 const { run, busy } = useRequest()
 const menu = ref(false)
+const menuButton = ref<HTMLButtonElement | null>(null)
+const sidebar = ref<HTMLElement | null>(null)
+async function openMenu() {
+  menu.value = true
+  await nextTick()
+  sidebar.value?.querySelector<HTMLElement>('a')?.focus()
+}
+function closeMenu() {
+  menu.value = false
+  menuButton.value?.focus()
+}
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && menu.value) {
+    event.preventDefault()
+    closeMenu()
+  }
+}
+onMounted(() => document.addEventListener('keydown', handleKeydown))
+onUnmounted(() => document.removeEventListener('keydown', handleKeydown))
 const publicPage = computed(() =>
   ['/login', '/setup', '/reset-password', '/reset'].includes(route.path),
 )
@@ -127,9 +148,9 @@ async function exit() {
         v-if="menu"
         class="sidebar-backdrop"
         aria-label="Close navigation"
-        @click="menu = false"
+        @click="closeMenu"
       />
-      <aside class="sidebar" :class="{ opened: menu }">
+      <aside id="workspace-navigation" ref="sidebar" class="sidebar" :class="{ opened: menu }">
         <router-link to="/" class="brand">
           <span class="brand-mark">TF</span>
           <span>
@@ -164,7 +185,9 @@ async function exit() {
               :class="{ active: route.path === link.path }"
               @click="menu = false"
             >
-              <span class="nav-dot" />
+              <ModuleIcon
+                :name="link.path === '/' ? 'overview' : (link.path.split('/').pop() ?? 'overview')"
+              />
               {{ link.label }}
             </router-link>
           </div>
@@ -178,8 +201,15 @@ async function exit() {
       <main class="main">
         <header class="topbar">
           <div class="topbar-title">
-            <button class="mobile-menu" aria-label="Open navigation" @click="menu = !menu">
-              ☰
+            <button
+              ref="menuButton"
+              class="mobile-menu"
+              :aria-label="t('打开导航', 'Open navigation')"
+              :aria-expanded="menu"
+              aria-controls="workspace-navigation"
+              @click="menu ? closeMenu() : openMenu()"
+            >
+              <ModuleIcon name="menu" />
             </button>
             <span>{{ currentTenant?.name ?? 'TenantForge' }}</span>
             <span class="breadcrumb-divider">/</span>
@@ -190,7 +220,10 @@ async function exit() {
               {{ state.locale === 'zh' ? 'EN' : '中文' }}
             </el-button>
             <el-button text :aria-label="t('切换主题', 'Toggle theme')" @click="toggleTheme">
-              {{ state.dark ? '☀' : '☾' }}
+              <el-icon>
+                <Sunny v-if="state.dark" />
+                <Moon v-else />
+              </el-icon>
             </el-button>
             <el-dropdown @command="profileCommand">
               <button class="profile-button">
@@ -198,6 +231,7 @@ async function exit() {
                   {{ state.me?.user.display_name.slice(0, 1).toUpperCase() }}
                 </span>
                 <span>{{ state.me?.user.display_name }}</span>
+                <el-icon><ArrowDown /></el-icon>
               </button>
               <template #dropdown>
                 <el-dropdown-menu>

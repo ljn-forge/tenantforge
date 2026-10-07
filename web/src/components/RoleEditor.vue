@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { Grant, Module, Department, Scope, Condition } from '../api/types'
-import { createGrant, validateGrant, parseConditionValue } from '../api/permissions'
-import { t, state } from '../stores/app'
+import { computed, ref, watch } from 'vue'
+import type { Grant, Module, Department } from '../api/types'
+import { createGrant } from '../api/permissions'
+import { t } from '../stores/app'
+import { moduleLabel, resourceLabel, operationLabel, grantSummary } from '../api/presentation'
+import GrantDetails from './permissions/GrantDetails.vue'
+import GrantPreview from './permissions/GrantPreview.vue'
+import { validateGrant } from '../api/permissions'
+import { validationLabel } from '../api/presentation'
 const props = defineProps<{
   modelValue: Grant[]
   modules: Module[]
@@ -10,25 +15,57 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [Grant[]] }>()
-const resource = ref('')
-const action = ref('read')
-const selected = computed(() => props.modules.find((module) => module.key === resource.value))
-const scopes: { value: Scope; zh: string; en: string }[] = [
-  { value: 'self', zh: '本人拥有的记录', en: 'Own records' },
-  { value: 'department', zh: '所属部门', en: 'Own department' },
-  { value: 'department_tree', zh: '所属部门及子部门', en: 'Department and descendants' },
-  { value: 'selected_departments', zh: '指定部门', en: 'Selected departments' },
-  { value: 'tenant', zh: '整个组织', en: 'Entire workspace' },
-]
-function descriptor(grant: Grant) {
-  return props.modules.find((module) => module.key === grant.resource)
+const selected = ref({
+  resource: props.modelValue[0]?.resource ?? props.modules[0]?.key ?? '',
+  action: props.modelValue[0]?.action ?? 'read',
+})
+watch(
+  () => props.modules,
+  (modules) => {
+    if (!modules.some((module) => module.key === selected.value.resource))
+      selected.value = { resource: modules[0]?.key ?? '', action: modules[0]?.actions[0] ?? 'read' }
+  },
+)
+const descriptor = computed(() =>
+  props.modules.find((module) => module.key === selected.value.resource),
+)
+const actions = computed(() => [...new Set(props.modules.flatMap((module) => module.actions))])
+const grants = computed(() =>
+  props.modelValue
+    .map((grant, index) => ({ grant, index }))
+    .filter(
+      (item) =>
+        item.grant.resource === selected.value.resource &&
+        item.grant.action === selected.value.action,
+    ),
+)
+const preview = ref<Grant[] | null>(null)
+const resultingPreview = computed(() => [
+  ...props.modelValue
+    .filter((grant) => grant.resource === descriptor.value?.key)
+    .map((grant) => ({ grant, added: false })),
+  ...(preview.value ?? []).map((grant) => ({ grant, added: true })),
+])
+const invalidGrants = computed(() =>
+  props.modelValue.flatMap((grant) => {
+    const module = props.modules.find((item) => item.key === grant.resource)
+    return validateGrant(grant, module).map((issue) => ({
+      grant,
+      issue: validationLabel(issue, module),
+    }))
+  }),
+)
+function count(resource: string, action: string) {
+  return props.modelValue.filter((grant) => grant.resource === resource && grant.action === action)
+    .length
 }
-function title(module?: Module) {
-  return module ? (state.locale === 'zh' ? module.label : module.label_en) : ''
+function select(resource: string, action: string) {
+  selected.value = { resource, action }
 }
 function add() {
-  if (selected.value?.actions.includes(action.value))
-    emit('update:modelValue', [...props.modelValue, createGrant(resource.value, action.value)])
+  const grant = createGrant(selected.value.resource, selected.value.action)
+  if (['read', 'export'].includes(grant.action)) grant.write_fields = []
+  emit('update:modelValue', [...props.modelValue, grant])
 }
 function remove(index: number) {
   emit(
@@ -36,188 +73,212 @@ function remove(index: number) {
     props.modelValue.filter((_, item) => item !== index),
   )
 }
-function addCondition(grant: Grant) {
-  ;(grant.conditions ??= []).push({
-    field: descriptor(grant)?.fields[0]?.key ?? '',
-    op: 'eq',
-    value: '',
-  })
+function preset(kind: 'read' | 'work') {
+  if (!descriptor.value) return
+  const allowed = kind === 'read' ? ['read'] : ['read', 'create', 'update']
+  preview.value = allowed
+    .filter(
+      (action) =>
+        descriptor.value!.actions.includes(action) && !count(descriptor.value!.key, action),
+    )
+    .map((action) => ({
+      ...createGrant(descriptor.value!.key, action),
+      write_fields: action === 'read' ? [] : ['*'],
+    }))
 }
-function updateCondition(grant: Grant, condition: Condition, value: string) {
-  const field = descriptor(grant)?.fields.find((item) => item.key === condition.field)
-  condition.value = parseConditionValue(field, value, condition.op)
-}
-function conditionText(condition: Condition) {
-  return Array.isArray(condition.value) ? condition.value.join(', ') : String(condition.value ?? '')
+function applyPreset() {
+  if (preview.value) emit('update:modelValue', [...props.modelValue, ...preview.value])
+  preview.value = null
 }
 </script>
 <template>
   <div class="role-editor">
-    <div class="toolbar" v-if="!disabled">
-      <el-select
-        v-model="resource"
-        :placeholder="t('选择资源', 'Choose resource')"
-        :aria-label="t('资源', 'Resource')"
-        @change="action = selected?.actions[0] ?? 'read'"
-      >
-        <el-option
-          v-for="module in modules"
-          :key="module.key"
-          :label="title(module)"
-          :value="module.key"
-        />
-      </el-select>
-      <el-select v-model="action" :aria-label="t('操作', 'Operation')">
-        <el-option
-          v-for="item in selected?.actions ?? []"
-          :key="item"
-          :label="item"
-          :value="item"
-        />
-      </el-select>
-      <el-button :disabled="!selected" @click="add">{{ t('添加授权', 'Add grant') }}</el-button>
+    <div class="permission-intro">
+      <div>
+        <h3>{{ t('权限矩阵', 'Permission matrix') }}</h3>
+        <p>
+          {{
+            t(
+              '先选择资源和操作，再设定范围与字段。每个单元格可以包含多条独立授权。',
+              'Choose a resource and operation, then refine its scope and fields. Each cell can contain independent grants.',
+            )
+          }}
+        </p>
+      </div>
+      <el-tag>{{ modelValue.length }} {{ t('条授权', 'grants') }}</el-tag>
     </div>
-    <p class="hint">
-      {{
+    <el-alert
+      v-if="invalidGrants.length"
+      type="warning"
+      :closable="false"
+      :title="
         t(
-          '每项操作单独设置数据范围。条件在单项授权内同时满足，多项授权合并生效。敏感字段需显式读取并单独解除遮罩。',
-          'Each operation has its own scope. Conditions within a grant use AND; matching grants use OR. Sensitive fields need explicit read access and separate unmask access.',
+          '还有授权需要完善，选择下方问题继续编辑。',
+          'Some grants need attention. Select an issue below to continue editing.',
         )
-      }}
-    </p>
-    <el-empty
-      v-if="!modelValue.length"
-      :description="t('尚未授权，默认拒绝访问', 'No grants. Access is denied by default. ')"
-      :image-size="65"
-    />
-    <article v-for="(grant, index) in modelValue" :key="index" data-grant class="grant-card">
-      <div class="grant-heading">
-        <strong>{{ title(descriptor(grant)) || grant.resource }}</strong>
-        <el-tag effect="plain">{{ grant.action }}</el-tag>
-        <el-button v-if="!disabled" text type="danger" @click="remove(index)">
-          {{ t('移除', 'Remove') }}
+      "
+    >
+      <div class="grant-issues">
+        <el-button
+          v-for="(issue, index) in invalidGrants"
+          :key="index"
+          text
+          @click="select(issue.grant.resource, issue.grant.action)"
+        >
+          {{ issue.issue }}
         </el-button>
       </div>
-      <el-form @submit.prevent label-position="top" :disabled="disabled">
-        <el-form-item :label="t('数据范围', 'Record scope')">
-          <el-select v-model="grant.scope" data-scope>
-            <el-option
-              v-for="scope in scopes"
-              :key="scope.value"
-              :value="scope.value"
-              :label="t(scope.zh, scope.en)"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item
-          v-if="grant.scope === 'selected_departments'"
-          :label="t('指定部门', 'Selected departments')"
-        >
-          <el-select v-model="grant.department_ids" multiple>
-            <el-option
-              v-for="department in departments"
-              :key="department.id"
-              :value="department.id"
-              :label="department.name"
-            />
-          </el-select>
-        </el-form-item>
-        <div v-if="descriptor(grant)?.fields.length" class="field-grid">
-          <el-form-item :label="t('可读取字段', 'Readable fields')">
-            <el-select v-model="grant.read_fields" multiple>
-              <el-option value="*" :label="t('所有非敏感字段', 'All non-sensitive fields')" />
-              <el-option
-                v-for="field in descriptor(grant)?.fields"
-                :key="field.key"
-                :value="field.key"
-                :label="
-                  (state.locale === 'zh' ? field.label : field.label_en) +
-                  (field.sensitive ? ' ◈' : '')
-                "
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="t('可写入字段', 'Writable fields')">
-            <el-select v-model="grant.write_fields" multiple>
-              <el-option
-                value="*"
-                :label="t('所有可变非敏感字段', 'All mutable non-sensitive fields')"
-              />
-              <el-option
-                v-for="field in descriptor(grant)?.fields.filter((item) => !item.readonly)"
-                :key="field.key"
-                :value="field.key"
-                :label="state.locale === 'zh' ? field.label : field.label_en"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="t('解除敏感字段遮罩', 'Unmask sensitive fields')">
-            <el-select v-model="grant.unmask_fields" multiple>
-              <el-option
-                v-for="field in descriptor(grant)?.fields.filter((item) => item.sensitive)"
-                :key="field.key"
-                :value="field.key"
-                :label="state.locale === 'zh' ? field.label : field.label_en"
-                :disabled="!grant.read_fields?.includes(field.key)"
-              />
-            </el-select>
-          </el-form-item>
-        </div>
-        <div
-          v-for="(condition, conditionIndex) in grant.conditions"
-          :key="conditionIndex"
-          class="condition-row"
-        >
-          <el-select v-model="condition.field" :aria-label="t('条件字段', 'Condition field')">
-            <el-option
-              v-for="field in descriptor(grant)?.fields"
-              :key="field.key"
-              :label="state.locale === 'zh' ? field.label : field.label_en"
-              :value="field.key"
-            />
-          </el-select>
-          <el-select
-            v-model="condition.op"
-            :aria-label="t('条件运算符', 'Condition operator')"
-            @change="condition.value = condition.op === 'in' ? [] : ''"
-          >
-            <el-option value="eq" :label="t('等于', 'Equals')" />
-            <el-option value="in" :label="t('属于集合', 'In list')" />
-          </el-select>
-          <el-input
-            :model-value="conditionText(condition)"
-            :aria-label="t('条件值', 'Condition value')"
-            :placeholder="
-              condition.op === 'in'
-                ? t('逗号分隔值', 'Comma-separated values')
-                : t('值；布尔类型填 true/false', 'Value; booleans use true/false')
-            "
-            @update:model-value="(value: string) => updateCondition(grant, condition, value)"
-          />
-          <el-button
-            v-if="!disabled"
-            text
-            type="danger"
-            @click="grant.conditions?.splice(conditionIndex, 1)"
-          >
-            {{ t('移除', 'Remove') }}
-          </el-button>
-        </div>
-        <el-button
-          v-if="descriptor(grant)?.fields.length && !disabled"
-          text
-          @click="addCondition(grant)"
-        >
-          + {{ t('添加条件', 'Add condition') }}
-        </el-button>
-      </el-form>
-      <ul
-        v-if="validateGrant(grant, descriptor(grant)).length"
-        class="validation-errors"
-        role="alert"
+    </el-alert>
+    <el-table
+      :data="modules"
+      border
+      class="permission-matrix"
+      row-key="key"
+      :empty-text="t('暂无资源', 'No resources')"
+    >
+      <el-table-column :label="t('资源', 'Resource')" min-width="160" fixed>
+        <template #default="{ row }">
+          <strong>{{ resourceLabel(row.key, modules) }}</strong>
+        </template>
+      </el-table-column>
+      <el-table-column
+        v-for="action in actions"
+        :key="action"
+        :label="operationLabel(action)"
+        min-width="104"
+        align="center"
       >
-        <li v-for="error in validateGrant(grant, descriptor(grant))" :key="error">{{ error }}</li>
+        <template #default="{ row }">
+          <el-button
+            v-if="row.actions.includes(action)"
+            :type="
+              selected.resource === row.key && selected.action === action
+                ? 'primary'
+                : count(row.key, action)
+                  ? 'success'
+                  : 'default'
+            "
+            :plain="!(selected.resource === row.key && selected.action === action)"
+            size="small"
+            :aria-label="`${moduleLabel(row)} · ${operationLabel(action, row)}`"
+            :aria-pressed="selected.resource === row.key && selected.action === action"
+            @click="select(row.key, action)"
+          >
+            {{
+              count(row.key, action)
+                ? t(`${count(row.key, action)} 条`, `${count(row.key, action)} grants`)
+                : t('未授权', 'No access')
+            }}
+          </el-button>
+          <span v-else class="muted" aria-hidden="true">—</span>
+        </template>
+      </el-table-column>
+    </el-table>
+    <section v-if="descriptor" class="permission-detail" aria-live="polite">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">{{ t('当前选择', 'SELECTED ACCESS') }}</span>
+          <h3>
+            {{ moduleLabel(descriptor) }}
+            <span class="muted">/</span>
+            {{ operationLabel(selected.action, descriptor) }}
+          </h3>
+        </div>
+        <el-button v-if="!disabled" @click="add">
+          <span aria-hidden="true">+</span>
+          {{ grants.length ? t('增加独立范围', 'Add another scope') : t('添加授权', 'Add grant') }}
+        </el-button>
+      </div>
+      <div v-if="!disabled" class="preset-toolbar">
+        <span class="hint">
+          {{
+            t(
+              '快速开始；只添加缺少的操作，已有规则保留。',
+              'Start safely. Presets add missing operations and preserve existing rules.',
+            )
+          }}
+        </span>
+        <el-button size="small" @click="preset('read')">
+          {{ t('只读预设', 'Read-only preset') }}
+        </el-button>
+        <el-button size="small" @click="preset('work')">
+          {{ t('本人工作预设', 'Own-work preset') }}
+        </el-button>
+      </div>
+      <el-empty
+        v-if="!grants.length"
+        :description="
+          t(
+            '此操作默认拒绝。添加授权后再选择数据范围。',
+            'This operation is denied. Add a grant to define its record scope.',
+          )
+        "
+        :image-size="48"
+      />
+      <p v-if="grants.length > 1" class="hint">
+        {{
+          t(
+            '以下范围以“或”合并生效，各授权的条件以“且”同时满足。',
+            'The scopes below are combined with OR. Conditions inside each grant use AND.',
+          )
+        }}
+      </p>
+      <GrantDetails
+        v-for="item in grants"
+        :key="item.index"
+        :grant="item.grant"
+        :descriptor="descriptor"
+        :departments="departments"
+        :disabled="disabled"
+        @remove="remove(item.index)"
+      />
+    </section>
+    <el-dialog
+      :model-value="preview !== null"
+      :title="t('确认新增权限', 'Review added access')"
+      width="640px"
+      @update:model-value="preview = null"
+    >
+      <p>
+        {{
+          t(
+            '以下预设仅影响当前资源；现有授权保持不变，不包含敏感字段明文权限。',
+            'This preset affects only the selected resource. Existing grants remain unchanged; no sensitive unmask access is added.',
+          )
+        }}
+      </p>
+      <el-empty
+        v-if="!preview?.length"
+        :description="
+          t(
+            '这些操作已有授权，无需新增。',
+            'These operations already have grants. Nothing will be added.',
+          )
+        "
+        :image-size="48"
+      />
+      <p class="hint">
+        {{
+          t(
+            '当前资源最终权限如下。以下范围以“或”合并生效，各授权条件需同时满足。其他资源保持不变。',
+            'Resulting access for this resource is shown below. Grant scopes combine with OR; conditions inside each grant use AND. Other resources remain unchanged.',
+          )
+        }}
+      </p>
+      <ul v-if="resultingPreview.length && descriptor" class="preset-preview">
+        <li v-for="(entry, index) in resultingPreview" :key="index">
+          <el-tag :type="entry.added ? 'success' : 'info'" size="small">
+            {{ entry.added ? t('新增', 'Added') : t('保留', 'Preserved') }}
+          </el-tag>
+          <GrantPreview :grant="entry.grant" :descriptor="descriptor" :departments="departments" />
+        </li>
       </ul>
-    </article>
+      <template #footer>
+        <el-button @click="preview = null">{{ t('取消', 'Cancel') }}</el-button>
+        <el-button type="primary" :disabled="!preview?.length" @click="applyPreset">
+          {{ t('应用预设', 'Apply preset') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

@@ -34,23 +34,46 @@ export function toggleTheme() {
   localStorage.setItem('tf_theme', state.dark ? 'dark' : 'light')
   document.documentElement.classList.toggle('dark', state.dark)
 }
+const workspaceKey = 'tf_workspace'
+function savedWorkspace(userID: string): string {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(workspaceKey) ?? 'null')
+    return saved?.user_id === userID && typeof saved.tenant_id === 'string' ? saved.tenant_id : ''
+  } catch {
+    return ''
+  }
+}
+function rememberWorkspace(userID: string, tenantID: string) {
+  try {
+    if (tenantID)
+      sessionStorage.setItem(workspaceKey, JSON.stringify({ user_id: userID, tenant_id: tenantID }))
+    else sessionStorage.removeItem(workspaceKey)
+  } catch {
+    // A disabled preference store must not prevent cookie-based authentication.
+  }
+}
 export async function loadMe() {
   try {
+    const previousUser = state.me?.user.id
     const result = await api<Me>('/auth/me')
     state.me = result.data
-    const selected = state.me.tenants.find(
-      (tenant) => tenant.id === state.tenant && tenant.status === 'active',
-    )
-    if (!selected) {
-      state.tenant = state.me.tenants.find((tenant) => tenant.status === 'active')?.id ?? ''
+    const activeTenants = result.data.tenants.filter((tenant) => tenant.status === 'active')
+    const current = !previousUser || previousUser === result.data.user.id ? state.tenant : ''
+    const preferred = current || savedWorkspace(result.data.user.id)
+    const selected = activeTenants.find((tenant) => tenant.id === preferred) ?? activeTenants[0]
+    const tenantID = selected?.id ?? ''
+    if (state.tenant !== tenantID) {
+      state.tenant = tenantID
       setTenant(state.tenant)
       if (state.tenant) state.me = (await api<Me>('/auth/me')).data
     }
+    rememberWorkspace(state.me.user.id, state.tenant)
   } catch (error) {
     if (error instanceof APIError && error.status === 401) {
       state.me = null
       state.tenant = ''
       resetClient()
+      rememberWorkspace('', '')
     } else throw error
   }
 }
@@ -84,6 +107,7 @@ export async function logout() {
   state.me = null
   state.tenant = ''
   resetClient()
+  rememberWorkspace('', '')
 }
 export async function bootstrap() {
   state.startupBusy = true

@@ -17,23 +17,33 @@ export class APIError extends Error {
     this.name = 'APIError'
   }
 }
+function invalidateContext() {
+  generation++
+  controllers.forEach((controller) => controller.abort())
+  controllers.clear()
+}
+function assertContext(epoch: number) {
+  if (epoch !== generation)
+    throw new APIError(409, 'context_changed', 'Session or tenant context changed')
+}
 export function setTenant(id: string) {
   if (tenant !== id) {
     tenant = id
-    generation++
-    controllers.forEach((controller) => controller.abort())
-    controllers.clear()
+    invalidateContext()
+    csrfRequest = null
   }
 }
 export function resetClient() {
-  setTenant('')
+  tenant = ''
+  invalidateContext()
   csrf = ''
   csrfRequest = null
 }
 
-async function responseError(response: Response): Promise<APIError> {
+async function responseError(response: Response, epoch: number): Promise<APIError> {
   try {
     const body = await response.json()
+    assertContext(epoch)
     return new APIError(
       response.status,
       typeof body.error?.code === 'string' ? body.error.code : 'request_failed',
@@ -41,25 +51,39 @@ async function responseError(response: Response): Promise<APIError> {
       body.error?.fields,
     )
   } catch {
+    assertContext(epoch)
     return new APIError(response.status, 'request_failed', `Request failed (${response.status})`)
   }
 }
 async function csrfToken(): Promise<string> {
   if (csrf) return csrf
-  if (!csrfRequest)
-    csrfRequest = fetch('/api/v1/auth/csrf', { credentials: 'include' })
-      .then(async (response) => {
-        if (!response.ok) throw await responseError(response)
-        const body = await response.json()
-        if (typeof body.data?.csrf_token !== 'string' || !body.data.csrf_token)
-          throw new APIError(502, 'invalid_response', 'Invalid CSRF response')
-        csrf = body.data.csrf_token
-        return csrf
+  if (csrfRequest) return csrfRequest
+  const epoch = generation
+  const controller = new AbortController()
+  controllers.add(controller)
+  const acquisition = (async () => {
+    try {
+      const response = await fetch('/api/v1/auth/csrf', {
+        credentials: 'include',
+        signal: controller.signal,
       })
-      .finally(() => {
-        csrfRequest = null
-      })
-  return csrfRequest
+      assertContext(epoch)
+      if (!response.ok) throw await responseError(response, epoch)
+      const body = await response.json()
+      assertContext(epoch)
+      if (typeof body.data?.csrf_token !== 'string' || !body.data.csrf_token)
+        throw new APIError(502, 'invalid_response', 'Invalid CSRF response')
+      csrf = body.data.csrf_token
+      return csrf
+    } finally {
+      controllers.delete(controller)
+    }
+  })()
+  const pending = acquisition.finally(() => {
+    if (csrfRequest === pending) csrfRequest = null
+  })
+  csrfRequest = pending
+  return pending
 }
 export interface APIOptions {
   method?: string
@@ -73,7 +97,7 @@ export async function api<T>(path: string, options: APIOptions = {}): Promise<En
   const headers = new Headers({ Accept: 'application/json' })
   if (selectedTenant) headers.set('X-Tenant-ID', selectedTenant)
   if (!['GET', 'HEAD'].includes(method)) headers.set('X-CSRF-Token', await csrfToken())
-  if (epoch !== generation) throw new APIError(409, 'context_changed', 'Tenant context changed')
+  assertContext(epoch)
   const form = options.body instanceof FormData
   if (options.body !== undefined && !form) headers.set('Content-Type', 'application/json')
   const controller = new AbortController()
@@ -94,10 +118,11 @@ export async function api<T>(path: string, options: APIOptions = {}): Promise<En
             : JSON.stringify(options.body),
       signal: controller.signal,
     })
-    if (epoch !== generation) throw new APIError(409, 'context_changed', 'Tenant context changed')
-    if (!response.ok) throw await responseError(response)
+    assertContext(epoch)
+    if (!response.ok) throw await responseError(response, epoch)
     if (response.status === 204) return { data: undefined as T }
     const result = await response.json()
+    assertContext(epoch)
     if (!Object.hasOwn(result, 'data'))
       throw new APIError(502, 'invalid_response', 'Invalid response')
     return result as Envelope<T>
@@ -111,25 +136,41 @@ export async function download(path: string, filename: string) {
   const epoch = generation
   const headers = new Headers()
   if (tenant) headers.set('X-Tenant-ID', tenant)
-  const response = await fetch(`/api/v1${path}`, { credentials: 'include', headers })
-  if (!response.ok) throw await responseError(response)
-  const blob = await response.blob()
-  if (epoch !== generation) throw new APIError(409, 'context_changed', 'Tenant context changed')
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const controller = new AbortController()
+  controllers.add(controller)
+  try {
+    const response = await fetch(`/api/v1${path}`, {
+      credentials: 'include',
+      headers,
+      signal: controller.signal,
+    })
+    assertContext(epoch)
+    if (!response.ok) throw await responseError(response, epoch)
+    const blob = await response.blob()
+    assertContext(epoch)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } finally {
+    controllers.delete(controller)
+  }
 }
 
 export async function allPages<T>(path: string): Promise<T[]> {
+  const epoch = generation
   const records: T[] = []
   for (let page = 1; ; page++) {
+    assertContext(epoch)
     const separator = path.includes('?') ? '&' : '?'
     const result = await api<T[]>(`${path}${separator}page=${page}&page_size=100`)
+    assertContext(epoch)
     const data = Array.isArray(result.data) ? result.data : []
     records.push(...data)
-    if (!data.length || !result.meta || records.length >= result.meta.total) return records
+    const finished = !data.length || !result.meta || records.length >= result.meta.total
+    assertContext(epoch)
+    if (finished) return records
   }
 }

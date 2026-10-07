@@ -6,6 +6,7 @@ import { state, t, loadMe } from '../stores/app'
 import { dateTime, formatValue } from '../api/forms'
 import { useCollection } from '../composables/collection'
 import { useRequest, saved } from '../composables/request'
+import StateBadge from '../components/StateBadge.vue'
 import PageHeader from '../components/PageHeader.vue'
 import PageState from '../components/PageState.vue'
 const list = useCollection<Tenant>(
@@ -68,7 +69,8 @@ async function save() {
     "
   >
     <el-button v-if="state.me?.platform_admin" type="primary" @click="open()">
-      + {{ t('创建租户', 'Provision tenant') }}
+      <span aria-hidden="true">+</span>
+      {{ t('创建租户', 'Provision tenant') }}
     </el-button>
   </PageHeader>
   <PageState
@@ -92,7 +94,7 @@ async function save() {
       <el-table-column prop="slug" :label="t('标识', 'Slug')" min-width="160" />
       <el-table-column :label="t('状态', 'Status')" width="120">
         <template #default="{ row }">
-          <el-tag :type="row.status === 'active' ? 'success' : 'warning'">{{ row.status }}</el-tag>
+          <StateBadge :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column :label="t('配额', 'Quotas')" min-width="220">

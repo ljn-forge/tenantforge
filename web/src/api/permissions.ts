@@ -54,6 +54,8 @@ export function validateGrant(grant: Grant, module?: Module): string[] {
         errors.push(`Unknown condition field: ${condition.field}`)
         continue
       }
+      if (field.sensitive)
+        errors.push(`Sensitive fields cannot be used in conditions: ${field.key}`)
       const values =
         condition.op === 'in' && Array.isArray(condition.value)
           ? condition.value

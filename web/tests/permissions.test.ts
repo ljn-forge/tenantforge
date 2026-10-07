@@ -40,3 +40,35 @@ test('condition parser preserves invalid boolean text so validation cannot silen
   const numeric = { ...field, type: 'number' as const }
   expect(Number.isNaN(parseConditionValue(numeric, '', 'eq'))).toBe(true)
 })
+
+test('sensitive fields cannot be used as record conditions even with explicit read and unmask fields', () => {
+  const descriptor = {
+    key: 'tickets',
+    label: '工单',
+    label_en: 'Tickets',
+    description: '',
+    actions: ['read'],
+    fields: [
+      {
+        key: 'secret',
+        label: '秘密',
+        label_en: 'Secret',
+        type: 'string' as const,
+        sensitive: true,
+      },
+    ],
+  }
+  expect(
+    validateGrant(
+      {
+        resource: 'tickets',
+        action: 'read',
+        scope: 'self',
+        read_fields: ['secret'],
+        unmask_fields: ['secret'],
+        conditions: [{ field: 'secret', op: 'eq', value: 'private' }],
+      },
+      descriptor,
+    ),
+  ).toContain('Sensitive fields cannot be used in conditions: secret')
+})

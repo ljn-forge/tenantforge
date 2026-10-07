@@ -95,7 +95,8 @@ async function copy() {
     "
   >
     <ActionButton resource="roles" action="create" type="primary" :disabled="busy" @click="open()">
-      + {{ t('创建角色', 'Create role') }}
+      <span aria-hidden="true">+</span>
+      {{ t('创建角色', 'Create role') }}
     </ActionButton>
   </PageHeader>
   <PageState
@@ -129,6 +130,7 @@ async function copy() {
           <ActionButton
             v-if="!row.builtin"
             resource="roles"
+            :record="row"
             action="update"
             link
             type="primary"
@@ -142,6 +144,7 @@ async function copy() {
           <ActionButton
             v-if="!row.builtin"
             resource="roles"
+            :record="row"
             action="delete"
             link
             type="danger"
@@ -171,7 +174,7 @@ async function copy() {
           ? t('编辑角色', 'Edit role')
           : t('创建角色', 'Create role')
     "
-    width="900px"
+    width="min(1184px, calc(100% - 32px))"
     :close-on-click-modal="!busy"
     destroy-on-close
   >

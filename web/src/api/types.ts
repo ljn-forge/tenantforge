@@ -41,11 +41,26 @@ export interface Field {
   readonly?: boolean
   options?: string[]
 }
+export interface Operation {
+  key: string
+  label: string
+  label_en: string
+}
+export interface Capabilities {
+  actions: string[]
+  write_fields: string[]
+  transitions: string[]
+}
+export interface AuthorizedRecord {
+  capabilities?: Capabilities
+}
 export interface Module {
   key: string
   label: string
   label_en: string
   description: string
+  description_en?: string
+  operations?: Operation[]
   fields: Field[]
   actions: string[]
 }
@@ -56,12 +71,12 @@ export interface Me {
   modules: Module[]
   platform_admin: boolean
 }
-export interface Department {
+export interface Department extends AuthorizedRecord {
   id: string
   name: string
   parent_id: string | null
 }
-export interface Member {
+export interface Member extends AuthorizedRecord {
   username?: string
   id: string
   user_id: string
@@ -72,7 +87,7 @@ export interface Member {
   role_ids: string[]
   status: string
 }
-export interface Role {
+export interface Role extends AuthorizedRecord {
   id: string
   name: string
   description: string
@@ -80,6 +95,7 @@ export interface Role {
   grants: Grant[]
 }
 export interface ResourceRecord {
+  capabilities: Capabilities
   id: string
   tenant_id: string
   owner_id: string
@@ -89,17 +105,30 @@ export interface ResourceRecord {
   created_at: string
   updated_at: string
 }
-export interface Job {
+export interface Audit {
+  id: string
+  actor_id: string
+  action: string
+  resource: string
+  record_id: string
+  request_id: string
+  created_at: string
+  changes: Record<string, unknown>
+}
+export interface Job extends AuthorizedRecord {
   id: string
   type: string
   status: string
   attempts: number
   max_attempts: number
   error: string
+  error_code?: string
+  error_stage?: string
+  result?: Record<string, unknown>
   created_at: string
   updated_at: string
 }
-export interface FileRecord {
+export interface FileRecord extends AuthorizedRecord {
   id: string
   name: string
   size: number

@@ -2,31 +2,40 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, download } from '../api/client'
-import type { Job } from '../api/types'
+import { recordAllows } from '../api/capabilities'
+import {
+  jobTypeLabel,
+  statusLabel,
+  operationLabel,
+  jobGuidance,
+  resourceLabel,
+} from '../api/presentation'
+import { state } from '../stores/app'
+import StateBadge from '../components/StateBadge.vue'
+import type { Job, Audit } from '../api/types'
+import ActivityDetails from '../components/activity/ActivityDetails.vue'
 import { t, allowed } from '../stores/app'
-import { formatValue, dateTime } from '../api/forms'
+import { dateTime } from '../api/forms'
 import { useCollection } from '../composables/collection'
 import { useRequest, saved, confirmDelete } from '../composables/request'
 import PageHeader from '../components/PageHeader.vue'
 import PageState from '../components/PageState.vue'
 import ActionButton from '../components/ActionButton.vue'
-interface Audit {
-  id: string
-  actor_id: string
-  action: string
-  resource: string
-  record_id: string
-  request_id: string
-  created_at: string
-  changes: Record<string, unknown>
-}
 const route = useRoute()
 const router = useRouter()
 const jobs = computed(() => route.path === '/jobs')
 const resource = computed(() => (jobs.value ? 'jobs' : 'audit'))
+const jobStatus = computed(() =>
+  jobs.value && typeof route.query.status === 'string' ? route.query.status : '',
+)
+const jobStatuses = ['pending', 'running', 'succeeded', 'failed', 'cancelled']
+async function filterStatus(value: string) {
+  await router.replace({ query: { ...route.query, status: value || undefined } })
+}
 const list = useCollection<Job | Audit>(
   () => `/${resource.value}`,
   () => allowed(resource.value, 'read'),
+  (): Record<string, string> => (jobStatus.value ? { status: jobStatus.value } : {}),
 )
 const { run, busy, error } = useRequest()
 const detail = ref<Job | Audit | null>(null)
@@ -51,7 +60,7 @@ async function operate(job: Job, action: string) {
   })
 }
 async function remove(job: Job) {
-  if (!(await confirmDelete(`${job.type} · ${job.id}`))) return
+  if (!(await confirmDelete(`${jobTypeLabel(job.type)} · ${job.id}`))) return
   await run(async () => {
     await api(`/jobs/${job.id}`, { method: 'DELETE' })
     if (detail.value?.id === job.id) detail.value = null
@@ -76,15 +85,6 @@ async function inspect(record: Job | Audit) {
     })
   else detail.value = record
 }
-function statusType(status: string) {
-  return status === 'succeeded'
-    ? 'success'
-    : status === 'failed'
-      ? 'danger'
-      : status === 'running'
-        ? 'warning'
-        : 'info'
-}
 </script>
 <template>
   <PageHeader
@@ -92,8 +92,8 @@ function statusType(status: string) {
     :description="
       jobs
         ? t(
-            '查看异步导出状态，重试失败任务或取消未完成任务。',
-            'Track asynchronous exports, retry failures and cancel unfinished work.',
+            '查看任务进度，重试失败任务或取消未完成任务。',
+            'Track job progress, retry failures and cancel unfinished work.',
           )
         : t(
             '查看组织内已授权操作的审计记录。',
@@ -126,13 +126,39 @@ function statusType(status: string) {
         clearable
       />
       <el-button native-type="submit">{{ t('搜索', 'Search') }}</el-button>
+      <el-select
+        v-if="jobs"
+        :model-value="jobStatus"
+        :aria-label="t('任务状态', 'Job status')"
+        :placeholder="t('所有状态', 'All statuses')"
+        clearable
+        class="status-filter"
+        @update:model-value="filterStatus($event ?? '')"
+      >
+        <el-option
+          v-for="status in jobStatuses"
+          :key="status"
+          :value="status"
+          :label="statusLabel(status)"
+        />
+      </el-select>
+      <el-tag v-if="jobStatus" closable @close="filterStatus('')">
+        {{ t('筛选', 'Filter') }}: {{ statusLabel(jobStatus) }}
+      </el-tag>
       <span class="count-label">{{ list.total.value }} {{ t('条记录', 'records') }}</span>
     </form>
     <el-table v-if="jobs" :data="list.items.value" :empty-text="t('暂无任务', 'No jobs')">
-      <el-table-column prop="type" :label="t('任务类型', 'Type')" min-width="180" />
+      <el-table-column :label="t('任务类型', 'Type')" min-width="220">
+        <template #default="{ row }">
+          <strong>{{ jobTypeLabel(row.type) }}</strong>
+          <small v-if="row.status === 'failed'" class="cell-secondary job-error">
+            {{ jobGuidance(row) }}
+          </small>
+        </template>
+      </el-table-column>
       <el-table-column :label="t('状态', 'Status')" width="135">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)">{{ row.status }}</el-tag>
+          <StateBadge :value="row.status" />
         </template>
       </el-table-column>
       <el-table-column :label="t('尝试次数', 'Attempts')" width="110">
@@ -145,7 +171,9 @@ function statusType(status: string) {
         <template #default="{ row }">
           <el-button link @click="inspect(row)">{{ t('详情', 'View') }}</el-button>
           <el-button
-            v-if="row.status === 'succeeded' && row.type.includes('export')"
+            v-if="
+              recordAllows(row, 'read') && row.status === 'succeeded' && row.type.includes('export')
+            "
             link
             type="primary"
             :disabled="busy"
@@ -156,6 +184,7 @@ function statusType(status: string) {
           <ActionButton
             v-if="row.status === 'failed'"
             resource="jobs"
+            :record="row"
             action="update"
             link
             type="primary"
@@ -167,6 +196,7 @@ function statusType(status: string) {
           <ActionButton
             v-if="['succeeded', 'failed', 'cancelled'].includes(row.status)"
             resource="jobs"
+            :record="row"
             action="update"
             link
             type="danger"
@@ -178,6 +208,7 @@ function statusType(status: string) {
           <ActionButton
             v-if="['pending', 'running'].includes(row.status)"
             resource="jobs"
+            :record="row"
             action="update"
             link
             type="danger"
@@ -190,14 +221,21 @@ function statusType(status: string) {
       </el-table-column>
     </el-table>
     <el-table v-else :data="list.items.value" :empty-text="t('暂无审计记录', 'No audit entries')">
-      <el-table-column prop="action" :label="t('操作', 'Action')" min-width="160" />
-      <el-table-column prop="resource" :label="t('资源', 'Resource')" min-width="150" />
-      <el-table-column
-        prop="actor_id"
-        :label="t('操作者', 'Actor')"
-        min-width="190"
-        show-overflow-tooltip
-      />
+      <el-table-column :label="t('操作', 'Action')" min-width="240">
+        <template #default="{ row }">
+          {{
+            operationLabel(
+              row.action,
+              state.me?.modules.find((module) => module.key === row.resource),
+            )
+          }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('资源', 'Resource')" min-width="160">
+        <template #default="{ row }">
+          {{ resourceLabel(row.resource, state.me?.modules ?? []) }}
+        </template>
+      </el-table-column>
       <el-table-column :label="t('时间', 'Time')" min-width="180">
         <template #default="{ row }">{{ dateTime(row.created_at) }}</template>
       </el-table-column>
@@ -223,13 +261,6 @@ function statusType(status: string) {
     size="min(650px,100%)"
     @close="detail = null"
   >
-    <el-descriptions v-if="detail" :column="1" border>
-      <el-descriptions-item v-for="(value, key) in detail" :key="key" :label="String(key)">
-        <pre v-if="typeof value === 'object'" class="json-detail">{{
-          JSON.stringify(value, null, 2)
-        }}</pre>
-        <span v-else>{{ formatValue(value) }}</span>
-      </el-descriptions-item>
-    </el-descriptions>
+    <ActivityDetails v-if="detail" :record="detail" />
   </el-drawer>
 </template>

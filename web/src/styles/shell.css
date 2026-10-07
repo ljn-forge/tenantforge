@@ -1,0 +1,234 @@
+.shell {
+  min-height: 100vh;
+}
+.sidebar {
+  width: 240px;
+  position: fixed;
+  inset: 0 auto 0 0;
+  background: #142c30;
+  border-right: 1px solid #284247;
+  --el-fill-color-blank: #1d383c;
+  --el-text-color-regular: #dbeae9;
+  --el-border-color: #355357;
+  --el-fill-color-light: #254448;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px 16px;
+  z-index: 30;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.brand small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-top: 5px;
+}
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #087f83, #09676c);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.5px;
+  flex: none;
+  box-shadow: 0 4px 12px #087f8325;
+}
+.tenant-picker {
+  padding: 24px 3px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.tenant-picker label {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+.tenant-picker .el-select {
+  width: 100%;
+}
+.sidebar nav {
+  flex: 1;
+  overflow: auto;
+  padding-top: 10px;
+}
+.nav-section {
+  margin: 16px 0;
+}
+.nav-section > p {
+  font-size: 10px;
+  color: #8b9ba2;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 0 13px 9px;
+}
+.nav-section a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  border-radius: 8px;
+  margin: 3px 0;
+  transition: background 0.15s;
+}
+.nav-section a:hover {
+  background: #203d42;
+  color: #edf8f6;
+}
+.nav-section a.active {
+  background: #245056;
+  color: #b9eee7;
+  font-weight: 700;
+}
+.sidebar-footer {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 16px 7px 0;
+  border-top: 1px solid var(--line);
+  border-color: #2a474b;
+}
+.sidebar-footer small {
+  float: right;
+  font-size: 10px;
+}
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #55ad91;
+  border-radius: 50%;
+  margin-right: 7px;
+}
+.main {
+  margin-left: 240px;
+}
+.topbar {
+  height: 64px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.topbar-title > span:first-of-type {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar-title strong {
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.breadcrumb-divider {
+  color: #c2ccd0;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-button {
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink);
+  padding: 3px 0 3px 10px;
+}
+.content {
+  max-width: 1600px;
+  margin: auto;
+  padding: 32px 32px 48px;
+}
+.mobile-menu {
+  display: none;
+  background: none;
+  border: 0;
+  color: var(--ink);
+  font-size: 22px;
+  padding: 4px;
+}
+.sidebar-backdrop {
+  display: none;
+}
+.sidebar .brand {
+  color: #f0faf8;
+}
+.sidebar .brand small {
+  color: #9bb7bb;
+  font-size: 10px;
+}
+.sidebar .tenant-picker {
+  border-color: #2a474b;
+  padding: 24px 0 16px;
+}
+.sidebar .tenant-picker label,
+.sidebar-footer {
+  color: #b0c5c8;
+}
+.sidebar .nav-section > p {
+  color: #a4bec1;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  padding-left: 12px;
+}
+.sidebar .nav-section a {
+  color: #c2d1d4;
+  gap: 12px;
+  height: 40px;
+  margin: 2px 0;
+}
+.nav-section .el-icon {
+  font-size: 18px;
+  flex: none;
+}
+.sidebar .brand-mark {
+  background: #0b9290;
+  border-radius: 10px;
+}
+.topbar-title,
+.profile-button {
+  font-size: 13px;
+}
+.profile-button > .el-icon {
+  font-size: 12px;
+  color: var(--muted);
+}

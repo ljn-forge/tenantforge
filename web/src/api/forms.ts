@@ -1,4 +1,5 @@
 import type { Field, Grant, Module } from './types'
+import { state } from '../stores/app'
 export function editableFields(module: Module, grants: Grant[], action: string): Field[] {
   const matching = grants.filter(
     (grant) => grant.resource === module.key && grant.action === action,
@@ -53,5 +54,5 @@ export function formatValue(value: unknown): string {
       : String(value)
 }
 export function dateTime(value: string): string {
-  return value ? new Date(value).toLocaleString() : '—'
+  return value ? new Date(value).toLocaleString(state.locale === 'zh' ? 'zh-CN' : 'en-US') : '—'
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { Sunny, Moon } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, APIError } from '../api/client'
 import { state, t, loggedIn, setLocale, toggleTheme } from '../stores/app'
@@ -47,7 +48,7 @@ async function submit() {
         },
       })
     } catch (failure) {
-      if (failure instanceof APIError && failure.code === 'mfa_required') {
+      if (failure instanceof APIError && failure.code === 'mfa_required' && !mfa.value) {
         mfa.value = true
         return
       }
@@ -72,7 +73,10 @@ async function submit() {
     <div class="auth-tools">
       <el-button text @click="setLocale">{{ state.locale === 'zh' ? 'EN' : '中文' }}</el-button>
       <el-button text @click="toggleTheme" :aria-label="t('切换主题', 'Toggle theme')">
-        {{ state.dark ? '☀' : '☾' }}
+        <el-icon>
+          <Sunny v-if="state.dark" />
+          <Moon v-else />
+        </el-icon>
       </el-button>
     </div>
     <section class="auth-story">

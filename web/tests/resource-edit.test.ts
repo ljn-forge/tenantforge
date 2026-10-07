@@ -50,6 +50,11 @@ test('editing a title preserves masked and write-only fields until the operator 
   } as Me
   const record = {
     id: 'ticket',
+    capabilities: {
+      actions: ['read', 'update'],
+      write_fields: ['title', 'customer_email', 'description'],
+      transitions: [],
+    },
     version: 1,
     data: { title: 'Original', customer_email: '***' },
     owner_id: 'owner',
@@ -153,5 +158,75 @@ test('export column selection uses export grants independently from list read fi
     'Title',
     'Status',
   ])
+  wrapper.unmount()
+})
+
+test('clearing an assigned department sends explicit null while leaving untouched record fields out of PATCH', async () => {
+  state.locale = 'en'
+  state.me = {
+    permissions: [{ resource: 'tickets', action: 'read', scope: 'tenant' }],
+    modules: [
+      {
+        key: 'tickets',
+        label: '工单',
+        label_en: 'Tickets',
+        description: '',
+        actions: ['read', 'update', 'assign'],
+        fields: [
+          { key: 'title', label: '标题', label_en: 'Title', type: 'string', required: true },
+        ],
+      },
+    ],
+  } as Me
+  const record = {
+    id: 'assigned',
+    version: 4,
+    owner_id: 'owner',
+    department_id: 'department',
+    data: { title: 'Assigned' },
+    capabilities: {
+      actions: ['read', 'update', 'assign'],
+      write_fields: ['title'],
+      transitions: [],
+    },
+  }
+  const patches: unknown[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.endsWith('/auth/csrf'))
+        return new Response(JSON.stringify({ data: { csrf_token: 'fixture' } }))
+      if (options?.method === 'PATCH') {
+        patches.push(JSON.parse(String(options.body)))
+        return new Response(JSON.stringify({ data: record }))
+      }
+      return new Response(
+        JSON.stringify({
+          data: url.endsWith('/assigned') ? record : [record],
+          meta: { total: 1, page: 1, page_size: 20 },
+        }),
+      )
+    }),
+  )
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/resources/:module', component: ResourcesView }],
+  })
+  await router.push('/resources/tickets')
+  await router.isReady()
+  const wrapper = mount(ResourcesView, { global: { plugins: [ElementPlus, router] } })
+  await flushPromises()
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === 'Edit')!
+    .trigger('click')
+  await flushPromises()
+  const { default: ResourceEditDialog } =
+    await import('../src/components/resources/ResourceEditDialog.vue')
+  wrapper.findComponent(ResourceEditDialog).vm.$emit('department', '')
+  await flushPromises()
+  await wrapper.find('.el-dialog form').trigger('submit')
+  await flushPromises()
+  expect(patches[0]).toEqual({ version: 4, department_id: null, data: {} })
   wrapper.unmount()
 })

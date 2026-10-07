@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import { state, t, loadMe } from '../stores/app'
 import { dateTime } from '../api/forms'
+import { operationLabel } from '../api/presentation'
 import { useCollection } from '../composables/collection'
 import { useRequest, saved, confirmDelete } from '../composables/request'
 import PageHeader from '../components/PageHeader.vue'
@@ -317,7 +318,9 @@ async function copySecret() {
       :data="securityEvents.items.value"
       :empty-text="t('暂无安全活动', 'No security activity')"
     >
-      <el-table-column prop="action" :label="t('活动', 'Activity')" min-width="200" />
+      <el-table-column :label="t('活动', 'Activity')" min-width="240">
+        <template #default="{ row }">{{ operationLabel(row.action) }}</template>
+      </el-table-column>
       <el-table-column :label="t('时间', 'Time')" min-width="180">
         <template #default="{ row }">{{ dateTime(row.created_at) }}</template>
       </el-table-column>

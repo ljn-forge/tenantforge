@@ -1,0 +1,225 @@
+@media (min-width: 1500px) {
+  .auth-story {
+    padding: 65px 80px;
+  }
+  .auth-story h2 {
+    font-size: 48px;
+  }
+}
+@media (max-width: 1150px) {
+  .sidebar {
+    width: 218px;
+  }
+  .main {
+    margin-left: 218px;
+  }
+  .content {
+    padding: 30px 25px;
+  }
+  .topbar {
+    padding: 0 25px;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .auth-story {
+    padding: 40px;
+  }
+  .auth-story h2 {
+    font-size: 34px;
+  }
+  .auth-panel {
+    padding: 70px 35px;
+  }
+  .page-heading {
+    align-items: flex-start;
+  }
+  .page-actions {
+    max-width: 280px;
+  }
+  .role-editor .field-grid {
+    grid-template-columns: 1fr;
+  }
+  .workload-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  .sidebar {
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s;
+    width: 250px;
+  }
+  .sidebar.opened {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: #142c3b66;
+    z-index: 25;
+    border: 0;
+  }
+  .main {
+    margin-left: 0;
+  }
+  .topbar {
+    height: 65px;
+    padding: 0 16px;
+  }
+  .mobile-menu {
+    display: block;
+  }
+  .content {
+    padding: 24px 16px;
+  }
+  .topbar-title {
+    gap: 10px;
+  }
+  .topbar-title > span:first-of-type,
+  .breadcrumb-divider {
+    display: none;
+  }
+  .profile-button > span:last-child {
+    display: none;
+  }
+  .page-heading {
+    flex-direction: column;
+    gap: 18px;
+  }
+  .page-actions {
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  .account-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .panel {
+    padding: 20px;
+  }
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+  .auth-story {
+    display: none;
+  }
+  .auth-panel {
+    min-height: 100vh;
+    padding: 90px 28px 50px;
+  }
+  .auth-card {
+    max-width: 420px;
+  }
+  .activity-entry time {
+    font-size: 9px;
+    margin-left: 48px;
+    width: 100%;
+  }
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+  .condition-row {
+    flex-wrap: wrap;
+  }
+  .condition-row .el-select:first-child {
+    flex: none;
+    width: calc(60% - 5px);
+  }
+  .condition-row .el-select:nth-child(2) {
+    width: calc(40% - 5px);
+  }
+  .condition-row .el-input {
+    width: 100%;
+    flex: auto;
+  }
+  .grant-card {
+    padding: 16px;
+  }
+  .el-dialog {
+    margin-top: 7vh;
+    padding: 20px;
+  }
+  .el-pagination__sizes {
+    display: none;
+  }
+  .pagination {
+    justify-content: center;
+  }
+  .table-toolbar .el-input {
+    max-width: none;
+    flex: 1;
+    min-width: 160px;
+  }
+  .table-toolbar .count-label {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .activity-entry p {
+    max-width: 160px;
+  }
+  .el-descriptions__label {
+    min-width: 110px;
+  }
+  .recovery-codes {
+    grid-template-columns: 1fr;
+  }
+  .workload-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .workload-card {
+    padding: 16px;
+  }
+  .workload-card strong {
+    font-size: 30px;
+  }
+  .workload-label {
+    font-size: 12px;
+  }
+  .workload-card small {
+    font-size: 11px;
+  }
+  .workload-label .el-icon {
+    font-size: 16px;
+  }
+  .activity-entry {
+    flex-wrap: wrap;
+  }
+  .activity-entry > div {
+    flex: 1;
+    min-width: 0;
+  }
+  .permission-detail .panel-heading {
+    align-items: flex-start;
+  }
+  .preset-toolbar {
+    justify-content: flex-start;
+  }
+  .preset-toolbar .hint {
+    width: 100%;
+  }
+  .field-access-matrix .cell {
+    padding: 0 8px;
+  }
+  .el-drawer__body {
+    padding: 16px;
+  }
+  .resource-counts .stat-card {
+    flex: 1;
+    min-width: 140px;
+  }
+  .topbar-actions {
+    gap: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

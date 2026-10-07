@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { api, download } from '../api/client'
+import { recordAllows } from '../api/capabilities'
 import type { FileRecord } from '../api/types'
 import { t, allowed } from '../stores/app'
 import { dateTime } from '../api/forms'
@@ -66,7 +67,8 @@ async function remove(file: FileRecord) {
     "
   >
     <ActionButton resource="files" action="create" type="primary" @click="modal = true">
-      + {{ t('上传文件', 'Upload file') }}
+      <span aria-hidden="true">+</span>
+      {{ t('上传文件', 'Upload file') }}
     </ActionButton>
   </PageHeader>
   <PageState
@@ -102,6 +104,7 @@ async function remove(file: FileRecord) {
       <el-table-column :label="t('操作', 'Actions')" width="170">
         <template #default="{ row }">
           <el-button
+            v-if="recordAllows(row, 'read')"
             link
             type="primary"
             :disabled="busy"
@@ -111,6 +114,7 @@ async function remove(file: FileRecord) {
           </el-button>
           <ActionButton
             resource="files"
+            :record="row"
             action="delete"
             link
             type="danger"

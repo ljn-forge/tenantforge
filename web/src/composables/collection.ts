@@ -1,7 +1,11 @@
 import { ref, watch, onBeforeUnmount } from 'vue'
 import { api } from '../api/client'
 import { useRequest } from './request'
-export function useCollection<T>(path: () => string, enabled: () => boolean = () => true) {
+export function useCollection<T>(
+  path: () => string,
+  enabled: () => boolean = () => true,
+  filters: () => Record<string, string> = () => ({}),
+) {
   const items = ref<T[]>([])
   const total = ref(0)
   const page = ref(1)
@@ -29,6 +33,7 @@ export function useCollection<T>(path: () => string, enabled: () => boolean = ()
         page_size: String(pageSize.value),
       })
       if (query.value) params.set('q', query.value)
+      for (const [key, value] of Object.entries(filters())) if (value) params.set(key, value)
       const result = await api<T[]>(`${path()}?${params}`)
       if (live && revision === ownRevision) {
         items.value = Array.isArray(result.data) ? result.data : []
@@ -41,7 +46,7 @@ export function useCollection<T>(path: () => string, enabled: () => boolean = ()
     }
   }
   watch(
-    [path, enabled],
+    [path, enabled, () => JSON.stringify(filters())],
     () => {
       items.value = []
       page.value = 1

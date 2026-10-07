@@ -1,46 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import * as OTPAuth from 'otpauth'
-import process from 'node:process'
-const identity = process.env.TF_E2E_USERNAME ?? 'admin'
-const password = process.env.TF_E2E_PASSWORD ?? 'BrowserAcceptance-Only-2026!'
-const initialPassword = process.env.TF_E2E_INITIAL_PASSWORD ?? 'Admin@123456'
+import { identity, password, signInAccount } from './helpers'
 let displayName = ''
 let email = ''
 async function signIn(page: Page) {
-  await page.goto('/login')
-  await expect(page.getByRole('heading', { name: 'Administrator sign in' })).toBeVisible()
-  await page.getByLabel('Username or email', { exact: true }).fill(identity)
-  async function submit(value: string) {
-    const response = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        new URL(response.url()).pathname === '/api/v1/auth/login',
-    )
-    await page.getByLabel('Password', { exact: true }).fill(value)
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-    return response
-  }
-  let usedPassword = initialPassword
-  let response = await submit(usedPassword)
-  if (response.status() === 401) {
-    usedPassword = password
-    response = await submit(usedPassword)
-  }
-  expect(response.ok()).toBe(true)
-  const account = (await response.json()).data
-  displayName = account.display_name
-  email = account.email
-  if (account.must_change_password) {
-    await expect(
-      page.getByText('Change your initial password before entering the administration system.', {
-        exact: true,
-      }),
-    ).toBeVisible()
-    await page.getByLabel('Current password', { exact: true }).fill(usedPassword)
-    await page.getByLabel('New password', { exact: true }).fill(password)
-    await page.getByRole('button', { name: 'Update password', exact: true }).click()
-  }
-  await expect(page.getByRole('heading', { name: `Welcome, ${displayName}` })).toBeVisible()
+  const user = await signInAccount(page)
+  displayName = user.display_name
+  email = user.email
 }
 test('default admin sign-in, initial password change, users and access editor, lifecycle, CSV, files, MFA and responsive layout', async ({
   page,
@@ -69,8 +35,7 @@ test('default admin sign-in, initial password change, users and access editor, l
   await page.getByRole('button', { name: 'Create role' }).click()
   await page.getByLabel('Name', { exact: true }).fill(`Scoped operator ${suffix}`)
   const editor = page.locator('.role-editor')
-  await editor.getByRole('combobox', { name: 'Resource' }).press('ArrowDown')
-  await page.getByRole('option', { name: 'Tickets', exact: true }).click()
+  await editor.getByRole('button', { name: 'Tickets · Read', exact: true }).click()
   await editor.getByRole('button', { name: 'Add grant' }).click()
   const grant = page.locator('[data-grant]').first()
   await grant.getByLabel('Record scope', { exact: true }).press('ArrowDown')
@@ -132,9 +97,9 @@ test('default admin sign-in, initial password change, users and access editor, l
   const ticketRow = page.getByRole('row').filter({ hasText: `Browser ticket ${suffix}` })
   await expect(ticketRow).toBeVisible()
   await ticketRow.getByRole('button', { name: 'View', exact: true }).click()
-  await page.getByRole('button', { name: 'in_progress', exact: true }).click()
+  await page.getByRole('button', { name: 'Start work', exact: true }).click()
   await expect(
-    page.locator('.el-drawer').getByText('in_progress', { exact: true }).first(),
+    page.locator('.el-drawer').getByText('In progress', { exact: true }).first(),
   ).toBeVisible()
   await page.locator('.el-drawer__close-btn').click()
   const resources = await page.request.get('/api/v1/resources/tickets', { headers })

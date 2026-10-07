@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Field } from '../api/types'
+import { fieldValidationLabel, statusLabel } from '../api/presentation'
 import { state } from '../stores/app'
 defineProps<{ field: Field; modelValue: unknown; error?: string; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [unknown] }>()
@@ -11,7 +12,7 @@ function update(value: unknown) {
   <el-form-item
     :label="state.locale === 'zh' ? field.label : field.label_en"
     :required="field.required"
-    :error="error"
+    :error="error ? fieldValidationLabel(error) : undefined"
   >
     <el-input-number
       v-if="field.type === 'number'"
@@ -31,7 +32,12 @@ function update(value: unknown) {
       :disabled="disabled"
       @update:model-value="update"
     >
-      <el-option v-for="option in field.options" :key="option" :value="option" :label="option" />
+      <el-option
+        v-for="option in field.options"
+        :key="option"
+        :value="option"
+        :label="statusLabel(option)"
+      />
     </el-select>
     <el-date-picker
       v-else-if="field.type === 'date'"

@@ -37,7 +37,11 @@ test('registered business extensions receive overview links and real count cards
     'fetch',
     vi.fn(
       async () =>
-        new Response(JSON.stringify({ data: { counts: { assets: 3 }, recent_activity: [] } })),
+        new Response(
+          JSON.stringify({
+            data: { counts: { assets: 3 }, workload: { open_tickets: 4 }, recent_activity: [] },
+          }),
+        ),
     ),
   )
   const router = createRouter({
@@ -55,5 +59,8 @@ test('registered business extensions receive overview links and real count cards
   expect(wrapper.get('.stat-card').attributes('href')).toBe('/resources/assets')
   expect(wrapper.find('.quick-links a[href="/resources/assets"]').exists()).toBe(true)
   expect(wrapper.get('.stat-card strong').text()).toBe('3')
+  expect(wrapper.findAll('.workload-card')).toHaveLength(1)
+  expect(wrapper.get('.workload-card').text()).toContain('Open tickets')
+  expect(wrapper.text()).not.toContain('Urgent tickets')
   wrapper.unmount()
 })
