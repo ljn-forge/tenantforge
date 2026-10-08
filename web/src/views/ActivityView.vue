@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, download } from '../api/client'
+import { api, download, clientContext } from '../api/client'
 import { recordAllows } from '../api/capabilities'
 import {
   jobTypeLabel,
@@ -21,6 +21,8 @@ import { useRequest, saved, confirmDelete } from '../composables/request'
 import PageHeader from '../components/PageHeader.vue'
 import PageState from '../components/PageState.vue'
 import ActionButton from '../components/ActionButton.vue'
+import TaskCreateDialog from '../components/activity/TaskCreateDialog.vue'
+import { useJobCatalog } from '../composables/jobCatalog'
 const route = useRoute()
 const router = useRouter()
 const jobs = computed(() => route.path === '/jobs')
@@ -38,7 +40,24 @@ const list = useCollection<Job | Audit>(
   (): Record<string, string> => (jobStatus.value ? { status: jobStatus.value } : {}),
 )
 const { run, busy, error } = useRequest()
+const catalog = useJobCatalog(() => jobs.value, list.load)
 const detail = ref<Job | Audit | null>(null)
+let detailRevision = 0
+function closeDetail() {
+  detailRevision++
+  detail.value = null
+}
+watch(
+  [
+    () => state.tenant,
+    () => state.me,
+    () => JSON.stringify(state.me?.permissions),
+    () => clientContext.value,
+    () => route.path,
+  ],
+  closeDetail,
+  { flush: 'sync' },
+)
 let timer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   timer = setInterval(() => {
@@ -51,7 +70,10 @@ onMounted(() => {
       void list.load()
   }, 5000)
 })
-onBeforeUnmount(() => clearInterval(timer))
+onBeforeUnmount(() => {
+  clearInterval(timer)
+  closeDetail()
+})
 async function operate(job: Job, action: string) {
   await run(async () => {
     await api(`/jobs/${job.id}/${action}`, { method: 'POST' })
@@ -60,7 +82,7 @@ async function operate(job: Job, action: string) {
   })
 }
 async function remove(job: Job) {
-  if (!(await confirmDelete(`${jobTypeLabel(job.type)} · ${job.id}`))) return
+  if (!(await confirmDelete(`${jobTypeLabel(job.type, job.definition)} · ${job.id}`))) return
   await run(async () => {
     await api(`/jobs/${job.id}`, { method: 'DELETE' })
     if (detail.value?.id === job.id) detail.value = null
@@ -79,9 +101,12 @@ async function exportAudit() {
   })
 }
 async function inspect(record: Job | Audit) {
+  const revision = ++detailRevision,
+    epoch = clientContext.value.epoch
   if (jobs.value)
     await run(async () => {
-      detail.value = (await api<Job>(`/jobs/${record.id}`)).data
+      const result = (await api<Job>(`/jobs/${record.id}`)).data
+      if (revision === detailRevision && epoch === clientContext.value.epoch) detail.value = result
     })
   else detail.value = record
 }
@@ -102,6 +127,15 @@ async function inspect(record: Job | Audit) {
     "
   >
     <ActionButton
+      v-if="jobs && catalog.types.value.length"
+      resource="jobs"
+      action="create"
+      :disabled="catalog.loading.value"
+      @click="catalog.show"
+    >
+      {{ t('新建任务', 'New task') }}
+    </ActionButton>
+    <ActionButton
       v-if="!jobs"
       resource="audit"
       action="export"
@@ -112,6 +146,31 @@ async function inspect(record: Job | Audit) {
     </ActionButton>
     <el-button :loading="list.busy.value" @click="list.load">{{ t('刷新', 'Refresh') }}</el-button>
   </PageHeader>
+  <div v-if="jobs && catalog.available.value" class="task-catalog-state">
+    <el-skeleton v-if="catalog.loading.value" :rows="1" animated />
+    <el-alert
+      v-else-if="catalog.catalogError.value"
+      type="error"
+      :closable="false"
+      :title="catalog.catalogError.value"
+    >
+      <el-button @click="catalog.load">{{ t('重试', 'Retry') }}</el-button>
+    </el-alert>
+    <el-alert
+      v-else-if="catalog.loaded.value && !catalog.types.value.length"
+      type="info"
+      :closable="false"
+      :title="
+        t('当前组织暂无可发起的额外任务', 'No additional tasks are available in this workspace')
+      "
+      :description="
+        t(
+          '如需更多任务，请联系管理员启用相应扩展。',
+          'Ask an administrator to enable a task extension when needed.',
+        )
+      "
+    />
+  </div>
   <PageState
     :denied="!allowed(resource, 'read')"
     :busy="list.busy.value"
@@ -150,7 +209,7 @@ async function inspect(record: Job | Audit) {
     <el-table v-if="jobs" :data="list.items.value" :empty-text="t('暂无任务', 'No jobs')">
       <el-table-column :label="t('任务类型', 'Type')" min-width="220">
         <template #default="{ row }">
-          <strong>{{ jobTypeLabel(row.type) }}</strong>
+          <strong>{{ jobTypeLabel(row.type, row.definition) }}</strong>
           <small v-if="row.status === 'failed'" class="cell-secondary job-error">
             {{ jobGuidance(row) }}
           </small>
@@ -259,8 +318,21 @@ async function inspect(record: Job | Audit) {
     :model-value="!!detail"
     :title="t('记录详情', 'Record details')"
     size="min(650px,100%)"
-    @close="detail = null"
+    @close="closeDetail"
   >
     <ActivityDetails v-if="detail" :record="detail" />
   </el-drawer>
+  <TaskCreateDialog
+    :open="catalog.open.value"
+    :types="catalog.types.value"
+    :selected-type="catalog.selectedType.value"
+    :values="catalog.values.value"
+    :errors="catalog.fieldErrors.value"
+    :error="catalog.submitError.value"
+    :submitting="catalog.submitting.value"
+    @choose="catalog.choose"
+    @change="catalog.change"
+    @close="catalog.close"
+    @submit="catalog.submit"
+  />
 </template>

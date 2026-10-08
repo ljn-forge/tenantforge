@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Audit, Job } from '../../api/types'
 import { state, t } from '../../stores/app'
-import { dateTime } from '../../api/forms'
+import { dateTime, formatValue } from '../../api/forms'
 import {
   jobTypeLabel,
   jobStageLabel,
@@ -14,6 +14,21 @@ import StateBadge from '../StateBadge.vue'
 const props = defineProps<{ record: Job | Audit }>()
 const job = computed(() => ('status' in props.record ? props.record : null))
 const audit = computed(() => ('action' in props.record ? props.record : null))
+const results = computed(() => {
+  const record = job.value
+  if (!record?.definition || !record.result) return []
+  return record.definition.result_fields
+    .filter((field) => {
+      if (field.sensitive || !Object.hasOwn(record.result!, field.key)) return false
+      const value = record.result![field.key]
+      return field.type === 'number'
+        ? typeof value === 'number' && Number.isFinite(value)
+        : field.type === 'boolean'
+          ? typeof value === 'boolean'
+          : typeof value === 'string'
+    })
+    .map((field) => ({ field, value: record.result![field.key] }))
+})
 const auditOperation = computed(() => {
   const entry = audit.value
   return entry
@@ -27,9 +42,16 @@ const auditOperation = computed(() => {
 <template>
   <div v-if="job">
     <div class="panel-heading">
-      <h2>{{ jobTypeLabel(job.type) }}</h2>
+      <h2>{{ jobTypeLabel(job.type, job.definition) }}</h2>
       <StateBadge :value="job.status" />
     </div>
+    <p v-if="job.definition" class="hint">
+      {{
+        state.locale === 'zh'
+          ? job.definition.description
+          : (job.definition.description_en ?? job.definition.description)
+      }}
+    </p>
     <el-alert
       v-if="job.status === 'failed'"
       type="warning"
@@ -50,6 +72,30 @@ const auditOperation = computed(() => {
         {{ dateTime(job.updated_at) }}
       </el-descriptions-item>
     </el-descriptions>
+    <section v-if="results.length" class="typed-job-results">
+      <h3>{{ t('任务结果', 'Task results') }}</h3>
+      <el-descriptions :column="1" border>
+        <el-descriptions-item
+          v-for="item in results"
+          :key="item.field.key"
+          :label="
+            (state.locale === 'zh' ? item.field.label : item.field.label_en)?.trim() ||
+            item.field.key
+          "
+        >
+          {{
+            item.field.type === 'boolean'
+              ? item.value
+                ? t('是', 'Yes')
+                : t('否', 'No')
+              : formatValue(item.value)
+          }}
+        </el-descriptions-item>
+      </el-descriptions>
+    </section>
+    <p v-else-if="job.status === 'succeeded' && job.definition?.result_fields.length" class="hint">
+      {{ t('当前访问权限下没有可显示的结果。', 'No results are available with current access.') }}
+    </p>
   </div>
   <div v-else-if="audit">
     <h2>
@@ -79,7 +125,7 @@ const auditOperation = computed(() => {
           </el-descriptions-item>
         </template>
         <el-descriptions-item
-          v-if="job?.result && Object.keys(job.result).length"
+          v-if="job?.result && !job.definition && Object.keys(job.result).length"
           :label="t('任务结果', 'Job result')"
         >
           <pre class="json-detail">{{ JSON.stringify(job.result, null, 2) }}</pre>

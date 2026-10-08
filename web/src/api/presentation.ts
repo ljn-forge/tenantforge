@@ -1,5 +1,5 @@
 import { t, state } from '../stores/app'
-import type { Grant, Module, Job } from './types'
+import type { Grant, Module, Job, JobDefinition } from './types'
 const operations: Record<string, [string, string]> = {
   read: ['查看', 'Read'],
   create: ['新建', 'Create'],
@@ -237,7 +237,8 @@ export function validationLabel(issue: string, module?: Module) {
   }
   return issue
 }
-export function jobTypeLabel(type: string) {
+export function jobTypeLabel(type: string, definition?: JobDefinition) {
+  if (definition) return state.locale === 'zh' ? definition.label : definition.label_en
   const builtins: Record<string, [string, string]> = {
     export: ['数据导出', 'Data export'],
     audit_export: ['审计导出', 'Audit export'],

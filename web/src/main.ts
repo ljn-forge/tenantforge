@@ -1,6 +1,4 @@
 import { createApp } from 'vue'
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import App from './App.vue'
 import { router } from './router'
@@ -9,7 +7,7 @@ import './style.css'
 
 document.documentElement.classList.toggle('dark', state.dark)
 document.documentElement.lang = state.locale === 'zh' ? 'zh-CN' : 'en'
-const app = createApp(App).use(ElementPlus)
+const app = createApp(App)
 bootstrap().finally(() => {
   app.use(router).mount('#app')
 })

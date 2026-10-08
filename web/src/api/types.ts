@@ -115,6 +115,19 @@ export interface Audit {
   created_at: string
   changes: Record<string, unknown>
 }
+export interface JobDefinition {
+  label: string
+  label_en: string
+  description?: string
+  description_en?: string
+  result_fields: Field[]
+}
+export interface JobType extends JobDefinition {
+  type: string
+  resource: string
+  action: string
+  input_fields: Field[]
+}
 export interface Job extends AuthorizedRecord {
   id: string
   type: string
@@ -125,6 +138,7 @@ export interface Job extends AuthorizedRecord {
   error_code?: string
   error_stage?: string
   result?: Record<string, unknown>
+  definition?: JobDefinition
   created_at: string
   updated_at: string
 }

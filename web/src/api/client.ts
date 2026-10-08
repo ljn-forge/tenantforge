@@ -1,9 +1,12 @@
 import type { Envelope } from './types'
+import { readonly, shallowRef } from 'vue'
 
 let tenant = ''
 let csrf = ''
 let csrfRequest: Promise<string> | null = null
 let generation = 0
+const context = shallowRef({ epoch: generation, tenant })
+export const clientContext = readonly(context)
 const controllers = new Set<AbortController>()
 
 export class APIError extends Error {
@@ -21,6 +24,7 @@ function invalidateContext() {
   generation++
   controllers.forEach((controller) => controller.abort())
   controllers.clear()
+  context.value = { epoch: generation, tenant }
 }
 function assertContext(epoch: number) {
   if (epoch !== generation)
