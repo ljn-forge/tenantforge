@@ -24,3 +24,7 @@ Task metadata/forms extend the existing descriptor/FieldInput/validation mechani
 ## Acceptance
 
 Unauthorized types are not discoverable; direct POST still enforces authority; malformed/unknown/required/enum/type-invalid payloads cannot enqueue; legacy API-only jobs retain behavior. UI launch and typed-result display work under an installed extension, with context changes unable to publish stale state. Built application retains login, role, resource, jobs, service dialogs and both themes. Production bundle measurements report actual compressed bytes, not only warning limits. Existing local account/password/data are preserved.
+
+## Final verification
+
+The typed extension task workflow and production loading budget passed. The final built browser run passed all four cases in 37.0s. A pending organization-switch reload race exposed by acceptance was reproduced with a stalled request, fixed with a user-bound validated selection intent, and independently reviewed; all 61 frontend tests passed. Existing credentials and normal application data remain subject to the final preserved-data comparison during local cutover.

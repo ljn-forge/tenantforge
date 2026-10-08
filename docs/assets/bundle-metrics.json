@@ -41,51 +41,51 @@
   "after": {
     "entry": {
       ".js": {
-        "bytes": 344695,
-        "gzip_bytes": 122162,
+        "bytes": 344868,
+        "gzip_bytes": 122274,
         "files": [
-          "assets/app-ODc4VML1.js",
-          "assets/css-DB4cLDaH.js",
-          "assets/index-DuJTiqni.js",
-          "assets/request-02EQ4nD3.js",
+          "assets/app-sjjIEosi.js",
+          "assets/css-Cn5JHUA_.js",
+          "assets/index-CKbPQ9Ng.js",
+          "assets/request-68hq7yB-.js",
           "assets/rolldown-runtime-CbXtAM7H.js"
         ]
       },
       ".css": {
-        "bytes": 101765,
-        "gzip_bytes": 17258,
+        "bytes": 101843,
+        "gzip_bytes": 17282,
         "files": [
           "assets/app-CNpL_Sag.css",
-          "assets/index-ChfwFusc.css",
+          "assets/index-D6SbZAs_.css",
           "assets/request-CtIYvYDv.css"
         ]
       }
     },
     "login": {
       ".js": {
-        "bytes": 385932,
-        "gzip_bytes": 137491,
+        "bytes": 386105,
+        "gzip_bytes": 137595,
         "files": [
-          "assets/AuthView-DBFtYBrJ.js",
-          "assets/app-ODc4VML1.js",
-          "assets/css-BLYh5zc-.js",
-          "assets/css-BR_MG_4_.js",
-          "assets/css-DB4cLDaH.js",
-          "assets/css-hqFhSt6s.js",
-          "assets/index-DuJTiqni.js",
-          "assets/request-02EQ4nD3.js",
+          "assets/AuthView-BLk4Z5DD.js",
+          "assets/app-sjjIEosi.js",
+          "assets/css-C--a1n8i.js",
+          "assets/css-CI0IuUYg.js",
+          "assets/css-Cn5JHUA_.js",
+          "assets/css-DV68osYc.js",
+          "assets/index-CKbPQ9Ng.js",
+          "assets/request-68hq7yB-.js",
           "assets/rolldown-runtime-CbXtAM7H.js"
         ]
       },
       ".css": {
-        "bytes": 112474,
-        "gzip_bytes": 19361,
+        "bytes": 112552,
+        "gzip_bytes": 19385,
         "files": [
           "assets/app-CNpL_Sag.css",
           "assets/css-B6UgayC7.css",
           "assets/css-CF-sYK2h.css",
           "assets/css-DgHkEboq.css",
-          "assets/index-ChfwFusc.css",
+          "assets/index-D6SbZAs_.css",
           "assets/request-CtIYvYDv.css"
         ]
       }
@@ -95,6 +95,6 @@
     "compression": "gzip level 9, independent files, mtime=0",
     "scope": "static import closure of entry plus optional login route; deduplicated resources; excludes unvisited dynamic routes",
     "before_commit": "482332e",
-    "after_frontend_commit": "3280e0d"
+    "after_frontend_commit": "8014149"
   }
 }

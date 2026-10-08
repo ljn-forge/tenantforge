@@ -8,10 +8,10 @@ were not reset. The stock binary keeps example modules opt-in.
 
 | Check | Observed result |
 | --- | --- |
-| Project check | `make check` passed: Go race/unit tests, vet, formatting, 58 frontend tests in 18 files, type check, production build and gzip budgets |
+| Project check | `make check` passed: Go race/unit tests, vet, formatting, 61 frontend tests in 18 files, type check, production build and gzip budgets |
 | Full real PostgreSQL race suite | Passed: platform 43.765s, asset example 2.534s, extension 1.693s, migrations 1.479s |
 | Production browser, stock binary | 3 passed in 27.4s; extension-only test intentionally skipped (`browser-check.py --built`) |
-| Production browser, installed public extension | 4 passed in 37.4s (`browser-check.py --built --assets`); actual task creation/completion, bilingual typed results, viewport checks, mobile dark layout and styled message/confirmation services |
+| Production browser, installed public extension | 4 passed in 37.0s (`browser-check.py --built --assets`); actual task creation/completion, bilingual typed results, viewport checks, mobile dark layout and styled message/confirmation services |
 | Python tooling regressions | 19 passed, including static-import deduplication and resource-budget failures |
 | REST specification | All 63 registered routes match OpenAPI; pinned Redocly 2.59.0 validation passed with the existing two OIDC redirect warnings |
 | Frontend audit | Zero reported advisories including development dependencies; production dependency graph unchanged |
@@ -31,7 +31,11 @@ excluded and included department scopes, tenant membership and protected Owner
 grant activation. Upgrade tests preserve custom role grants and administrator
 password hashes and verify activation auditing is idempotent. Frontend tests
 cover rejected inputs, duplicate submission, failed catalog retry and context
-changes during loading/submission/inspection.
+changes during loading/submission/inspection. A stalled organization switch followed
+by a hard reload now retains the user-bound selection intent. Restoring it still
+checks fresh server memberships; unknown, suspended or revoked choices and another
+user's preference cannot bypass authorization. The original production browser
+switch-and-reload acceptance also passed after the regression fix.
 
 Gzip sizes are sums of independently compressed files at level 9, following the
 recursive Vite static-import manifest closure. They are resource sizes, not
@@ -40,8 +44,8 @@ include the shared chunks, rather than only the entry file.
 
 | Profile | JavaScript before / after | CSS before / after |
 | --- | --- | --- |
-| Entry and static dependencies | 335807 / 122162 bytes | 52941 / 17258 bytes |
-| Login and its dependencies | 338801 / 137491 bytes | 52941 / 19361 bytes |
+| Entry and static dependencies | 335807 / 122274 bytes | 52941 / 17282 bytes |
+| Login and its dependencies | 338801 / 137595 bytes | 52941 / 19385 bytes |
 
 The previous build exceeds the new 160 KiB JS / 25 KiB CSS budgets; the current
 build passes. `make check` keeps this guard in CI. Visual evidence comes from the
