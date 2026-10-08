@@ -156,7 +156,12 @@ export function useResources() {
             field.type === 'boolean'
               ? false
               : field.type === 'enum'
-                ? field.options?.[0]
+                ? !current.value &&
+                  key.value === 'tickets' &&
+                  field.key === 'priority' &&
+                  field.options?.includes('normal')
+                  ? 'normal'
+                  : field.options?.[0]
                 : field.type === 'number'
                   ? undefined
                   : ''

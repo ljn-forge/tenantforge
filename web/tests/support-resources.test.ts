@@ -1,12 +1,14 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import ElementPlus from 'element-plus'
 import ResourcesView from '../src/views/ResourcesView.vue'
 import ResourceDetails from '../src/components/resources/ResourceDetails.vue'
+import ResourceEditDialog from '../src/components/resources/ResourceEditDialog.vue'
 import { state } from '../src/stores/app'
 import { resetClient } from '../src/api/client'
 import type { Me, ResourceRecord } from '../src/api/types'
+enableAutoUnmount(afterEach)
 const record: ResourceRecord = {
   id: 'ticket',
   tenant_id: 'tenant',
@@ -72,6 +74,34 @@ afterEach(() => {
   vi.unstubAllGlobals()
   state.me = null
   resetClient()
+})
+test('new support tickets default to normal priority even when low is the first enum option', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => respond(url)),
+  )
+  const { wrapper } = await setup()
+  state.me!.permissions.push({
+    resource: 'tickets',
+    action: 'create',
+    scope: 'self',
+    write_fields: ['priority'],
+  })
+  state.me!.modules[0]!.fields.push({
+    key: 'priority',
+    label: '优先级',
+    label_en: 'Priority',
+    type: 'enum',
+    options: ['low', 'normal', 'high', 'urgent'],
+  })
+  await flushPromises()
+  await wrapper
+    .findAll('button')
+    .find((button) => button.text() === '+ New record')!
+    .trigger('click')
+  await flushPromises()
+  expect(wrapper.findComponent(ResourceEditDialog).props('values').priority).toBe('normal')
+  wrapper.unmount()
 })
 test('ticket queues combine with existing filters and synchronize the resource route', async () => {
   const urls: string[] = []
