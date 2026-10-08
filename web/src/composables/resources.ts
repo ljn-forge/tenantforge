@@ -1,6 +1,6 @@
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, APIError, allPages } from '../api/client'
+import { api, APIError, allPages, clientContext } from '../api/client'
 import type { ResourceRecord, Department, Member, Job } from '../api/types'
 import { editableFields, buildResourceData, validateResourceData } from '../api/forms'
 import { recordAllows, recordWritableFields } from '../api/capabilities'
@@ -12,6 +12,21 @@ export function useResources() {
   const route = useRoute()
   const router = useRouter()
   const key = computed(() => String(route.params.module))
+  const context = computed(() =>
+    JSON.stringify([
+      clientContext.value.epoch,
+      state.tenant,
+      state.me?.user?.id,
+      state.me?.permissions,
+      key.value,
+    ]),
+  )
+  let revision = 0
+  let detailRevision = 0
+  let live = true
+  function valid(epoch: number) {
+    return live && epoch === revision
+  }
   const module = computed(() => state.me?.modules.find((item) => item.key === key.value))
   const title = computed(() =>
     module.value ? (state.locale === 'zh' ? module.value.label : module.value.label_en) : key.value,
@@ -39,6 +54,16 @@ export function useResources() {
       ),
     ),
   )
+  const queue = computed(() =>
+    key.value === 'tickets' && typeof route.query.queue === 'string' ? route.query.queue : '',
+  )
+  const listFilters = computed(() => ({
+    ...filters.value,
+    ...(queue.value ? { queue: queue.value } : {}),
+  }))
+  async function setQueue(value: string) {
+    await router.replace({ query: { ...route.query, queue: value || undefined } })
+  }
   async function setFilter(key: string, value: string) {
     await router.replace({ query: { ...route.query, [key]: value || undefined } })
   }
@@ -50,7 +75,8 @@ export function useResources() {
   const list = useCollection<ResourceRecord>(
     () => `/resources/${key.value}`,
     () => allowed(key.value, 'read'),
-    () => filters.value,
+    () => listFilters.value,
+    () => context.value,
   )
   const { run, busy, error } = useRequest()
   const modal = ref(false)
@@ -60,6 +86,7 @@ export function useResources() {
   const dirtyFields = reactive(new Set<string>())
   const errors = ref<Record<string, string>>({})
   const conflict = ref(false)
+  const detailConflict = ref(false)
   const owner = ref('')
   const department = ref('')
   const members = ref<Member[]>([])
@@ -97,24 +124,28 @@ export function useResources() {
       ) ?? [],
   )
   async function assignments() {
+    const epoch = revision
     await Promise.all([
       allowed('members', 'read')
         ? allPages<Member>('/members').then((result) => {
-            members.value = result
+            if (valid(epoch)) members.value = result.filter((item) => item.status === 'active')
           })
         : Promise.resolve(),
       allowed('departments', 'read')
         ? allPages<Department>('/departments').then((result) => {
-            departments.value = result
+            if (valid(epoch)) departments.value = result
           })
         : Promise.resolve(),
     ])
   }
   async function edit(record?: ResourceRecord) {
+    const epoch = revision
     await run(async () => {
-      current.value = record
+      const result = record
         ? (await api<ResourceRecord>(`/resources/${key.value}/${record.id}`)).data
         : null
+      if (!valid(epoch)) return
+      current.value = result
       Object.keys(values).forEach((item) => delete values[item])
       dirtyFields.clear()
       Object.assign(values, current.value?.data ?? {})
@@ -135,7 +166,7 @@ export function useResources() {
       errors.value = {}
       conflict.value = false
       if (canAssign.value) await assignments()
-      modal.value = true
+      if (valid(epoch)) modal.value = true
     })
   }
   function updateValue(field: string, value: unknown) {
@@ -143,11 +174,18 @@ export function useResources() {
     dirtyFields.add(field)
   }
   async function view(record: ResourceRecord) {
+    const epoch = revision
+    const request = ++detailRevision
     await run(async () => {
-      detail.value = (await api<ResourceRecord>(`/resources/${key.value}/${record.id}`)).data
+      const result = (await api<ResourceRecord>(`/resources/${key.value}/${record.id}`)).data
+      if (valid(epoch) && request === detailRevision) {
+        detail.value = result
+        detailConflict.value = false
+      }
     })
   }
   async function save() {
+    const epoch = revision
     const submittedFields = current.value
       ? fields.value.filter((field) => dirtyFields.has(field.key))
       : fields.value
@@ -166,11 +204,12 @@ export function useResources() {
           method: current.value ? 'PATCH' : 'POST',
           body,
         })
+        if (!valid(epoch)) return
         modal.value = false
         saved()
         await list.load()
       } catch (failure) {
-        if (failure instanceof APIError) {
+        if (valid(epoch) && failure instanceof APIError) {
           if (failure.status === 409) conflict.value = true
           if (failure.fields) errors.value = failure.fields
         }
@@ -188,15 +227,32 @@ export function useResources() {
         await list.load()
       })
   }
-  async function transition(record: ResourceRecord, status: string) {
+  async function transition(record: ResourceRecord, status: string, resolution?: string) {
+    if (
+      !record.capabilities?.transitions.includes(status) ||
+      (status === 'resolved' && !resolution?.trim())
+    )
+      return
+    const epoch = revision
     await run(async () => {
-      await api(`/resources/tickets/${record.id}/transition`, {
-        method: 'POST',
-        body: { version: record.version, status },
-      })
-      saved()
-      await list.load()
-      await refreshDetail(record)
+      try {
+        await api(`/resources/tickets/${record.id}/transition`, {
+          method: 'POST',
+          body: {
+            version: record.version,
+            status,
+            ...(status === 'resolved' ? { resolution } : {}),
+          },
+        })
+        if (!valid(epoch)) return
+        saved()
+        await list.load()
+        await refreshDetail(record)
+      } catch (failure) {
+        if (valid(epoch) && failure instanceof APIError && failure.status === 409)
+          detailConflict.value = true
+        throw failure
+      }
     })
   }
   async function importCSV(event: Event) {
@@ -237,8 +293,41 @@ export function useResources() {
 
   async function refreshDetail(record: ResourceRecord) {
     if (detail.value?.id !== record.id) return
-    const refreshed = (await api<ResourceRecord>(`/resources/${key.value}/${record.id}`)).data
-    if (detail.value?.id === record.id) detail.value = refreshed
+    const epoch = revision
+    const request = detailRevision
+    try {
+      const refreshed = (await api<ResourceRecord>(`/resources/${key.value}/${record.id}`)).data
+      if (!valid(epoch) || request !== detailRevision || detail.value?.id !== record.id) return
+      if (!recordAllows(refreshed, 'read')) closeDetail()
+      else {
+        detail.value = refreshed
+        detailConflict.value = false
+      }
+    } catch (failure) {
+      if (
+        valid(epoch) &&
+        request === detailRevision &&
+        failure instanceof APIError &&
+        [403, 404].includes(failure.status)
+      )
+        closeDetail()
+      else throw failure
+    }
+  }
+  function closeDetail() {
+    detailRevision++
+    detail.value = null
+    detailConflict.value = false
+    error.value = ''
+  }
+  async function updatedDetail(record: ResourceRecord) {
+    if (detail.value?.id !== record.id) return
+    if (recordAllows(record, 'read')) detail.value = record
+    else closeDetail()
+    await list.load()
+  }
+  async function reloadDetail() {
+    if (detail.value) await run(() => refreshDetail(detail.value!))
   }
   async function operate(record: ResourceRecord, action: string) {
     if (!recordAllows(record, action)) return
@@ -252,10 +341,37 @@ export function useResources() {
       await refreshDetail(record)
     })
   }
+  watch(
+    context,
+    () => {
+      revision++
+      closeDetail()
+      modal.value = false
+      current.value = null
+      Object.keys(values).forEach((item) => delete values[item])
+      dirtyFields.clear()
+      members.value = []
+      departments.value = []
+      errors.value = {}
+      conflict.value = false
+      owner.value = ''
+      department.value = ''
+      exportOpen.value = false
+      columns.value = []
+    },
+    { flush: 'sync' },
+  )
+  onBeforeUnmount(() => {
+    live = false
+    revision++
+    detailRevision++
+  })
 
   return {
     filterFields,
     filters,
+    queue,
+    setQueue,
     setFilter,
     clearFilters,
     key,
@@ -267,6 +383,10 @@ export function useResources() {
     modal,
     current,
     detail,
+    detailConflict,
+    closeDetail,
+    updatedDetail,
+    reloadDetail,
     values,
     errors,
     conflict,

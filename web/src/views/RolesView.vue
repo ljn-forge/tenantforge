@@ -3,6 +3,7 @@ import { onMounted, ref, computed, reactive } from 'vue'
 import { api, allPages } from '../api/client'
 import type { Role, Module, Department, Grant } from '../api/types'
 import { validateGrant } from '../api/permissions'
+import { supportRoleGrants, type SupportRoleKind } from '../api/supportRoles'
 import { t, allowed, loadMe } from '../stores/app'
 import { useCollection } from '../composables/collection'
 import { useRequest, saved, confirmDelete } from '../composables/request'
@@ -21,6 +22,8 @@ const modal = ref(false)
 const current = ref<Role | null>(null)
 const readonly = ref(false)
 const form = reactive({ name: '', description: '', grants: [] as Grant[] })
+const supportTemplate = ref<SupportRoleKind | null>(null)
+const templateReady = computed(() => supportRoleGrants('supervisor', modules.value).length > 0)
 const copyOpen = ref(false)
 const copyId = ref('')
 const copyName = ref('')
@@ -41,12 +44,26 @@ onMounted(async () => {
   })
 })
 function open(role?: Role, view = false) {
+  supportTemplate.value = null
   current.value = role ?? null
   readonly.value = view
   form.name = role?.name ?? ''
   form.description = role?.description ?? ''
   form.grants = role ? JSON.parse(JSON.stringify(role.grants)) : []
   modal.value = true
+}
+function openSupportTemplate(kind: SupportRoleKind) {
+  const grants = supportRoleGrants(kind, modules.value)
+  if (!grants.length || !allowed('roles', 'create')) return
+  open()
+  supportTemplate.value = kind
+  form.name =
+    kind === 'agent' ? t('客服处理员', 'Support agent') : t('客服主管', 'Support supervisor')
+  form.description =
+    kind === 'agent'
+      ? t('处理本人拥有的客服工单', 'Handle support tickets you own')
+      : t('分配与处理所属部门的客服工单', 'Assign and handle support tickets in your department')
+  form.grants = grants
 }
 async function save() {
   if (!form.name.trim() || issues.value.length) return
@@ -94,6 +111,24 @@ async function copy() {
       )
     "
   >
+    <ActionButton
+      v-if="templateReady"
+      resource="roles"
+      action="create"
+      :disabled="busy"
+      @click="openSupportTemplate('agent')"
+    >
+      {{ t('新建客服处理员角色', 'New support agent role') }}
+    </ActionButton>
+    <ActionButton
+      v-if="templateReady"
+      resource="roles"
+      action="create"
+      :disabled="busy"
+      @click="openSupportTemplate('supervisor')"
+    >
+      {{ t('新建客服主管角色', 'New support supervisor role') }}
+    </ActionButton>
     <ActionButton resource="roles" action="create" type="primary" :disabled="busy" @click="open()">
       <span aria-hidden="true">+</span>
       {{ t('创建角色', 'Create role') }}
@@ -190,6 +225,40 @@ async function copy() {
           </el-form-item>
         </div>
       </el-form>
+      <el-alert
+        v-if="supportTemplate && !current"
+        class="support-template-preview"
+        type="warning"
+        :closable="false"
+        :title="t('检查客服模板的敏感字段访问', 'Review sensitive access in this support template')"
+      >
+        <p>
+          {{
+            t(
+              '此新角色草稿明确授予 customer_email（客户邮箱）与 internal_notes（内部备注）的读取和明文权限，以及创建/更新写入权限。回复操作仅写入 description / internal_notes；私密备注只有具备明确读取和明文授权的同事可见。',
+              'This new role draft explicitly grants read and unmask access to customer_email and internal_notes, plus create/update writes. Reply writes are limited to description / internal_notes; private notes require explicit read and unmask access.',
+            )
+          }}
+        </p>
+        <p>
+          {{
+            supportTemplate === 'agent'
+              ? t('工单权限范围为本人拥有的记录。', 'Ticket access is limited to own records.')
+              : t(
+                  '工单权限范围为所属部门，并包含所属部门用户与部门读取，用于分配。',
+                  'Ticket access is limited to the own department, with department-scoped member and department reads for assignment.',
+                )
+          }}
+        </p>
+        <p>
+          {{
+            t(
+              '请核对下方权限矩阵后手动保存。模板不会自动修改已有角色。',
+              'Review the permission matrix below and save manually. Templates do not modify existing roles automatically.',
+            )
+          }}
+        </p>
+      </el-alert>
       <RoleEditor
         v-model="form.grants"
         :modules="modules"

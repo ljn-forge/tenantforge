@@ -50,6 +50,21 @@ export interface Capabilities {
   actions: string[]
   write_fields: string[]
   transitions: string[]
+  reply_kinds?: ('reply' | 'note')[]
+}
+export interface TicketEvent {
+  id: string
+  ticket_id: string
+  kind: 'created' | 'updated' | 'assigned' | 'status_changed' | 'reply' | 'note'
+  actor_id: string | null
+  actor_name: string
+  created_at: string
+  body?: string
+  from_status?: string
+  to_status?: string
+  owner_id?: string
+  department_id?: string | null
+  fields?: string[]
 }
 export interface AuthorizedRecord {
   capabilities?: Capabilities

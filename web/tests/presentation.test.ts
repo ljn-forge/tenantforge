@@ -1,7 +1,13 @@
 import { expect, test } from 'vitest'
-import { activitySentence } from '../src/api/presentation'
+import { activitySentence, operationLabel } from '../src/api/presentation'
 import { state } from '../src/stores/app'
 import type { Module } from '../src/api/types'
+test('support reply operation has a human label in both locales', () => {
+  state.locale = 'zh'
+  expect(operationLabel('reply')).toBe('记录沟通与备注')
+  state.locale = 'en'
+  expect(operationLabel('reply')).toBe('Reply')
+})
 
 test('activity explains the recorded operation using module labels without inventing an actor name', () => {
   const modules = [{ key: 'assets', label: '资产', label_en: 'Assets' }] as Module[]

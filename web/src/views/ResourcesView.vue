@@ -12,6 +12,8 @@ import ResourceDetails from '../components/resources/ResourceDetails.vue'
 const {
   filterFields,
   filters,
+  queue,
+  setQueue,
   setFilter,
   clearFilters,
   key,
@@ -23,6 +25,10 @@ const {
   modal,
   current,
   detail,
+  detailConflict,
+  closeDetail,
+  updatedDetail,
+  reloadDetail,
   values,
   errors,
   conflict,
@@ -83,6 +89,27 @@ const {
   />
   <template v-if="allowed(key, 'read') && module">
     <div class="panel">
+      <div
+        v-if="key === 'tickets'"
+        class="ticket-queues"
+        :aria-label="t('工单队列', 'Ticket queues')"
+      >
+        <el-button
+          v-for="item in [
+            { key: 'mine', label: t('我的待办', 'My active tickets') },
+            { key: 'active', label: t('处理中', 'Active tickets') },
+            { key: 'resolved', label: t('已解决', 'Resolved') },
+            { key: 'closed', label: t('已关闭', 'Closed') },
+            { key: 'all', label: t('全部工单', 'All tickets') },
+          ]"
+          :key="item.key"
+          :type="queue === item.key ? 'primary' : undefined"
+          :aria-pressed="queue === item.key"
+          @click="setQueue(item.key)"
+        >
+          {{ item.label }}
+        </el-button>
+      </div>
       <form class="table-toolbar" @submit.prevent="list.search">
         <el-input
           v-model="list.query.value"
@@ -146,7 +173,11 @@ const {
     :record="detail"
     :descriptor="module"
     :busy="busy"
-    @close="detail = null"
+    :error="error"
+    :conflict="detailConflict"
+    @close="closeDetail"
+    @updated="updatedDetail"
+    @reload="reloadDetail"
     @transition="transition"
     @operate="operate"
   />

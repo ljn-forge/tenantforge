@@ -6,6 +6,7 @@ const operations: Record<string, [string, string]> = {
   update: ['编辑', 'Edit'],
   delete: ['删除', 'Delete'],
   assign: ['分配', 'Assign'],
+  reply: ['记录沟通与备注', 'Reply'],
   import: ['导入', 'Import'],
   export: ['导出', 'Export'],
   copy: ['复制', 'Copy'],

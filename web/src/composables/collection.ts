@@ -5,6 +5,7 @@ export function useCollection<T>(
   path: () => string,
   enabled: () => boolean = () => true,
   filters: () => Record<string, string> = () => ({}),
+  context: () => unknown = () => '',
 ) {
   const items = ref<T[]>([])
   const total = ref(0)
@@ -46,9 +47,11 @@ export function useCollection<T>(
     }
   }
   watch(
-    [path, enabled, () => JSON.stringify(filters())],
+    [path, enabled, () => JSON.stringify(filters()), context],
     () => {
       items.value = []
+      total.value = 0
+      error.value = ''
       page.value = 1
       void load()
     },

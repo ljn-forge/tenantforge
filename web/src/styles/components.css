@@ -334,3 +334,109 @@
   flex-wrap: wrap;
   width: 100%;
 }
+.ticket-queues,
+.ticket-composer-actions,
+.ticket-owner,
+.ticket-event-heading,
+.ticket-history-pagination {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.ticket-queues {
+  justify-content: flex-start;
+  margin-bottom: 24px;
+}
+.ticket-queues .el-button + .el-button,
+.ticket-transitions .el-button + .el-button {
+  margin-left: 0;
+}
+.ticket-transitions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ticket-transitions p {
+  width: 100%;
+}
+.ticket-title {
+  margin: 0 0 20px;
+  overflow-wrap: anywhere;
+}
+.ticket-support {
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.ticket-owner {
+  padding: 20px 0;
+}
+.ticket-support > .el-alert {
+  margin-bottom: 16px;
+}
+.ticket-activity {
+  margin: 12px 0 28px;
+}
+.ticket-activity h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.ticket-events {
+  padding: 0;
+  list-style: none;
+  margin: 16px 0;
+}
+.ticket-events li {
+  margin-bottom: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--canvas);
+}
+.ticket-event-heading time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.ticket-events .ticket-private-note {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+}
+.ticket-message,
+.ticket-event-status {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  margin: 8px 0 0;
+}
+.ticket-composer {
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+.ticket-composer .el-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+}
+.ticket-composer .el-form-item {
+  margin-bottom: 12px;
+}
+.ticket-assignment .el-form-item__content > .hint {
+  width: 100%;
+}
+.support-template-preview {
+  margin-bottom: 20px;
+}
+@media (max-width: 600px) {
+  .ticket-history-pagination {
+    justify-content: flex-start;
+  }
+  .ticket-events li {
+    padding: 12px;
+  }
+  .ticket-event-heading {
+    align-items: flex-start;
+  }
+  .ticket-activity .panel-heading {
+    flex-wrap: wrap;
+  }
+}
