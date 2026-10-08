@@ -97,7 +97,7 @@ func New(ctx context.Context, c Config) (*App, error) {
 		return nil, errors.New("database connection unavailable")
 	}
 	var bypass, super, owns bool
-	e = pool.QueryRow(ctx, `SELECT EXISTS(SELECT FROM pg_roles b WHERE (b.rolbypassrls OR b.rolsuper) AND pg_has_role(current_user,b.oid,'MEMBER')),r.rolsuper,EXISTS(SELECT FROM pg_tables WHERE schemaname='public' AND tablename IN ('resources','roles','jobs','audit') AND pg_has_role(current_user,tableowner,'MEMBER')) FROM pg_roles r WHERE rolname=current_user`).Scan(&bypass, &super, &owns)
+	e = pool.QueryRow(ctx, `SELECT EXISTS(SELECT FROM pg_roles b WHERE (b.rolbypassrls OR b.rolsuper) AND pg_has_role(current_user,b.oid,'MEMBER')),r.rolsuper,EXISTS(SELECT FROM pg_tables WHERE schemaname='public' AND tablename IN ('resources','roles','jobs','audit','ticket_events') AND pg_has_role(current_user,tableowner,'MEMBER')) FROM pg_roles r WHERE rolname=current_user`).Scan(&bypass, &super, &owns)
 	if e != nil || bypass || super || owns {
 		pool.Close()
 		return nil, errors.New("runtime database role must not own protected tables, be superuser or bypass RLS")
@@ -284,6 +284,9 @@ func (a *App) Handler() http.Handler {
 	add("PATCH /api/v1/resources/{module}/{id}", false, true, updateResource)
 	add("DELETE /api/v1/resources/{module}/{id}", false, true, deleteResource)
 	add("POST /api/v1/resources/{module}/{id}/transition", false, true, transitionResource)
+	add("GET /api/v1/resources/{module}/{id}/activity", false, true, ticketActivity)
+	add("POST /api/v1/resources/{module}/{id}/replies", false, true, replyTicket)
+	add("POST /api/v1/resources/{module}/{id}/assignment", false, true, assignTicket)
 	add("POST /api/v1/resources/{module}/{id}/actions/{action}", false, true, operateResource)
 	add("POST /api/v1/resources/{module}/export", false, true, exportResources)
 	add("POST /api/v1/resources/{module}/import", false, true, importResources)

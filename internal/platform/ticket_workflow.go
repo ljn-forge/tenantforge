@@ -1,6 +1,9 @@
 package platform
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 func validTransition(from, to string) bool {
 	edges := map[string][]string{"open": {"in_progress"}, "in_progress": {"resolved"}, "resolved": {"closed", "in_progress"}, "closed": {"open"}}
@@ -24,13 +27,18 @@ func transitionResource(q *request) (any, error) {
 		return nil, e
 	}
 	var in struct {
-		Version int    `json:"version"`
-		Status  string `json:"status"`
+		Version    int     `json:"version"`
+		Status     string  `json:"status"`
+		Resolution *string `json:"resolution,omitempty"`
 	}
 	if e = q.decode(&in); e != nil {
 		return nil, e
 	}
-	r, e := q.updateRecord(m, id, resourceInput{Version: in.Version, Data: map[string]any{"status": in.Status}}, "update")
+	data := map[string]any{"status": in.Status}
+	if in.Resolution != nil {
+		data["resolution"] = *in.Resolution
+	}
+	r, e := q.updateRecord(m, id, resourceInput{Version: in.Version, Data: data}, "update")
 	if e != nil {
 		return nil, e
 	}
@@ -67,6 +75,12 @@ var policies = map[string]resourcePolicy{"tickets": {
 		return nil
 	},
 	Change: func(old Record, data map[string]any) error {
+		if data["status"] == "resolved" && old.Data["status"] != "resolved" {
+			summary, ok := data["resolution"].(string)
+			if !ok || strings.TrimSpace(summary) == "" {
+				return validation("A fresh resolution summary is required")
+			}
+		}
 		if status, ok := data["status"]; ok && status != old.Data["status"] && !validTransition(stringValue(old.Data["status"]), stringValue(status)) {
 			return validation("Invalid ticket status transition")
 		}
@@ -76,6 +90,9 @@ var policies = map[string]resourcePolicy{"tickets": {
 		out := []string{}
 		for _, status := range ticketTransitions(stringValue(old.Data["status"])) {
 			delta := map[string]any{"status": status}
+			if status == "resolved" {
+				delta["resolution"] = ""
+			}
 			next := old
 			next.Data = cloneJSONMap(old.Data)
 			next.Data["status"] = status

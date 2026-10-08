@@ -419,6 +419,15 @@ func transferMember(q *request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
+	for _, r := range records {
+		if r.Module == "tickets" && r.OwnerID == old.OwnerID {
+			n := r.Record
+			n.OwnerID = in.Owner
+			if e = q.ticketChangeEvents(r.Record, n, nil); e != nil {
+				return nil, e
+			}
+		}
+	}
 	files, e := q.tx.Exec(q.ctx(), "UPDATE files SET owner_id=$1 WHERE tenant_id=$2 AND id::text=ANY($3::text[])", in.Owner, q.p.TenantID, fileIDs)
 	if e != nil {
 		return nil, e

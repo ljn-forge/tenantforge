@@ -30,6 +30,9 @@ func capabilities(p Principal, module string, r Record) Capabilities {
 	if policy, exists := policies[module]; exists && policy.Transitions != nil {
 		c.Transitions = policy.Transitions(p, r)
 	}
+	if module == "tickets" {
+		c.ReplyKinds = ticketReplyKinds(p, r)
+	}
 	for _, op := range m.Operations {
 		action := op.Action
 		if action == "" {

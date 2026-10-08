@@ -43,6 +43,9 @@ func (r *Registry) Register(m Module) error {
 		}
 	}
 	standard := []string{"read", "create", "update", "delete", "assign", "export", "import"}
+	if m.Key == "tickets" {
+		standard = append(standard, "reply")
+	}
 	operations := map[string]bool{}
 	for _, op := range m.Operations {
 		if !identifier.MatchString(op.Key) || op.Label == "" || op.LabelEN == "" || op.Apply == nil || operations[op.Key] || slices.Contains(standard, op.Key) {

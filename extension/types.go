@@ -53,6 +53,7 @@ type Record struct {
 }
 
 type Capabilities struct {
+	ReplyKinds  []string `json:"reply_kinds,omitempty"`
 	Actions     []string `json:"actions"`
 	WriteFields []string `json:"write_fields"`
 	Transitions []string `json:"transitions"`

@@ -30,13 +30,20 @@ func (q *request) records(module string) ([]storedRecord, error) {
 	return out, nil
 }
 func (q *request) record(module, id string, lock bool) (Record, error) {
+	clause := ""
+	if lock {
+		clause = " FOR UPDATE"
+	}
+	return q.recordLocked(module, id, clause)
+}
+
+// Lock clauses are internal constants; an activity read fences parent ownership until paging commits.
+func (q *request) recordLocked(module, id, clause string) (Record, error) {
 	if !validID(id) {
 		return Record{}, notFound()
 	}
 	sql := `SELECT id::text,tenant_id::text,owner_id::text,coalesce(department_id::text,'') department_id,version,data,created_at,updated_at FROM resources WHERE tenant_id=$1 AND module=$2 AND id=$3`
-	if lock {
-		sql += " FOR UPDATE"
-	}
+	sql += clause
 	row, e := q.one(sql, q.p.TenantID, module, id)
 	if e != nil {
 		return Record{}, e
@@ -68,6 +75,9 @@ func listResources(q *request) (any, error) {
 	b := &predicate{}
 	where := b.authorized(q.p, m, "read", "r", "r.owner_id", "r.department_id", "r.data") + " AND r.module=" + b.arg(m)
 	module, _ := Descriptor(m)
+	if e = ticketQueue(q, m, b, &where); e != nil {
+		return nil, e
+	}
 	if search := q.r.URL.Query().Get("q"); search != "" {
 		ors := []string{}
 		for _, f := range module.Fields {
@@ -194,6 +204,11 @@ func (q *request) insertResource(m string, in resourceInput, action string) (Rec
 	if _, e = q.tx.Exec(q.ctx(), "INSERT INTO resources(id,tenant_id,module,owner_id,department_id,data) VALUES($1,$2,$3,$4,$5,$6)", r.ID, r.TenantID, m, r.OwnerID, nullable(r.DepartmentID), jsonBytes(d)); e != nil {
 		return Record{}, e
 	}
+	if m == "tickets" {
+		if _, e = q.insertTicketEvent(r.ID, "created", "", nil); e != nil {
+			return Record{}, e
+		}
+	}
 	if e = q.audit(action, m, r.ID, map[string]any{"fields": safeFieldKeys(m, in.Data)}); e != nil {
 		return Record{}, e
 	}
@@ -264,6 +279,16 @@ func (q *request) updateRecord(m, id string, in resourceInput, action string) (R
 	if !CanWrite(q.p, m, action, old, d) || !CanWrite(q.p, m, action, next, d) {
 		return Record{}, forbidden()
 	}
+	// Ticket status edges always require update authority, including registered job/operation actions.
+	if m == "tickets" && old.Data["status"] != next.Data["status"] {
+		statusFields := map[string]any{"status": next.Data["status"]}
+		if next.Data["status"] == "resolved" {
+			statusFields["resolution"] = next.Data["resolution"]
+		}
+		if !CanWrite(q.p, m, "update", old, statusFields) || !CanWrite(q.p, m, "update", next, statusFields) {
+			return Record{}, forbidden()
+		}
+	}
 	if policy, exists := policies[m]; exists && policy.Change != nil {
 		if e = policy.Change(old, d); e != nil {
 			return Record{}, e
@@ -271,6 +296,11 @@ func (q *request) updateRecord(m, id string, in resourceInput, action string) (R
 	}
 	if _, e = q.tx.Exec(q.ctx(), `UPDATE resources SET owner_id=$1,department_id=$2,data=$3,version=version+1,updated_at=now() WHERE id=$4 AND tenant_id=$5 AND version=$6`, next.OwnerID, nullable(next.DepartmentID), jsonBytes(next.Data), id, q.p.TenantID, in.Version); e != nil {
 		return Record{}, e
+	}
+	if m == "tickets" {
+		if e = q.ticketChangeEvents(old, next, d); e != nil {
+			return Record{}, e
+		}
 	}
 	if e = q.audit(action, m, id, map[string]any{"fields": safeFieldKeys(m, d), "previous_version": old.Version, "version": old.Version + 1}); e != nil {
 		return Record{}, e
