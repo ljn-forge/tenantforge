@@ -291,6 +291,7 @@ func (a *App) Handler() http.Handler {
 	add("POST /api/v1/files", false, true, uploadFile)
 	add("GET /api/v1/files/{id}/download", false, true, downloadFile)
 	add("DELETE /api/v1/files/{id}", false, true, deleteFile)
+	add("GET /api/v1/job-types", false, true, jobTypes)
 	add("GET /api/v1/jobs", false, true, listJobs)
 	add("POST /api/v1/jobs", false, true, createJob)
 	add("GET /api/v1/jobs/{id}", false, true, getJob)

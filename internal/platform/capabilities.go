@@ -47,6 +47,9 @@ func (q *request) controlCapabilities(module string, row map[string]any, owner, 
 }
 func (q *request) publicJob(row map[string]any) map[string]any {
 	out := jobPublic(row)
+	if d, ok := moduleRegistry.Job(stringValue(row["type"])); ok {
+		out["definition"] = displayJobDefinition(d)
+	}
 	if hash := stringValue(row["authority_hash"]); hash != "" && hash != jobAuthority(q.p, stringValue(row["authority_resource"]), stringValue(row["authority_action"])) {
 		delete(out, "result")
 	}

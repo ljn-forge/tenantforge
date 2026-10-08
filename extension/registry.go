@@ -66,13 +66,13 @@ func (r *Registry) Register(m Module) error {
 	}
 	seen = map[string]bool{}
 	for _, f := range m.Fields {
-		if !identifier.MatchString(f.Key) || seen[f.Key] || slices.Contains([]string{"id", "tenant_id", "owner_id", "department_id", "version", "created_at", "updated_at"}, f.Key) || f.Label == "" || f.LabelEN == "" || !slices.Contains([]string{"string", "text", "number", "boolean", "enum", "date"}, f.Type) {
-			return errors.New("invalid, reserved or duplicate field")
+		if seen[f.Key] {
+			return errors.New("duplicate field")
 		}
-		seen[f.Key] = true
-		if e := validateOptions(f); e != nil {
+		if e := validateFieldDescriptor(f); e != nil {
 			return e
 		}
+		seen[f.Key] = true
 		if f.Readonly && f.Required {
 			return errors.New("readonly field cannot be required on creation")
 		}
@@ -116,7 +116,7 @@ func (r *Registry) RegisterJob(d JobDefinition) error {
 	if r.frozen {
 		return errors.New("module registry frozen")
 	}
-	if !identifier.MatchString(d.Type) || d.Type == "export" || d.Run == nil || len(d.ResultFields) > 32 {
+	if !identifier.MatchString(d.Type) || d.Type == "export" || d.Run == nil || len(d.ResultFields) > 32 || len(d.InputFields) > 32 {
 		return errors.New("invalid job registration")
 	}
 	if _, ok := r.jobs[d.Type]; ok {
@@ -131,6 +131,16 @@ func (r *Registry) RegisterJob(d JobDefinition) error {
 	if !found {
 		return errors.New("unknown job authority")
 	}
+	inputs := map[string]bool{}
+	for _, f := range d.InputFields {
+		if f.Sensitive || f.Readonly || inputs[f.Key] {
+			return errors.New("unsafe or duplicate job input field")
+		}
+		if e := validateFieldDescriptor(f); e != nil {
+			return e
+		}
+		inputs[f.Key] = true
+	}
 	seen := map[string]bool{}
 	for _, f := range d.ResultFields {
 		if !identifier.MatchString(f.Key) || seen[f.Key] || f.Sensitive || slices.Contains([]string{"password", "secret", "token", "credentials", "email", "mfa", "recovery_code"}, f.Key) || !slices.Contains([]string{"string", "text", "number", "boolean", "enum", "date"}, f.Type) {
@@ -141,7 +151,7 @@ func (r *Registry) RegisterJob(d JobDefinition) error {
 			return e
 		}
 	}
-	d.ResultFields = cloneFields(d.ResultFields)
+	d = cloneJob(d)
 	r.jobs[d.Type] = d
 	return nil
 }
@@ -149,7 +159,7 @@ func (r *Registry) Job(key string) (JobDefinition, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	d, ok := r.jobs[key]
-	d.ResultFields = cloneFields(d.ResultFields)
+	d = cloneJob(d)
 	return d, ok
 }
 func (r *Registry) Jobs() []JobDefinition {
@@ -157,13 +167,16 @@ func (r *Registry) Jobs() []JobDefinition {
 	defer r.mu.RUnlock()
 	out := []JobDefinition{}
 	for _, d := range r.jobs {
-		d.ResultFields = cloneFields(d.ResultFields)
+		d = cloneJob(d)
 		out = append(out, d)
 	}
 	slices.SortFunc(out, func(a, b JobDefinition) int { return strings.Compare(a.Type, b.Type) })
 	return out
 }
 func cloneFields(fs []Field) []Field {
+	if fs == nil {
+		return nil
+	}
 	out := append([]Field{}, fs...)
 	for i := range out {
 		out[i].Options = append([]string{}, out[i].Options...)
@@ -187,4 +200,16 @@ func validateOptions(f Field) error {
 		return errors.New("options require enum field")
 	}
 	return nil
+}
+
+func cloneJob(d JobDefinition) JobDefinition {
+	d.InputFields = cloneFields(d.InputFields)
+	d.ResultFields = cloneFields(d.ResultFields)
+	return d
+}
+func validateFieldDescriptor(f Field) error {
+	if !identifier.MatchString(f.Key) || slices.Contains([]string{"id", "tenant_id", "owner_id", "department_id", "version", "created_at", "updated_at"}, f.Key) || strings.TrimSpace(f.Label) == "" || strings.TrimSpace(f.LabelEN) == "" || !slices.Contains([]string{"string", "text", "number", "boolean", "enum", "date"}, f.Type) {
+		return errors.New("invalid, reserved or untranslated field")
+	}
+	return validateOptions(f)
 }

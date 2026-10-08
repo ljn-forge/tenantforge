@@ -297,8 +297,12 @@ func TestOIDCUpstreamWithoutHeadersIsBoundedByRequestContext(t *testing.T) {
 	if e != nil {
 		t.Fatal("handler did not return within deadline")
 	}
-	resp.Body.Close()
-	if resp.StatusCode != 503 || time.Since(started) > time.Second {
-		t.Fatal("upstream request lacked bounded context")
+	defer resp.Body.Close()
+	var out map[string]any
+	if e := json.NewDecoder(resp.Body).Decode(&out); e != nil {
+		t.Fatal("timeout response was not structured JSON")
+	}
+	if resp.StatusCode != http.StatusGatewayTimeout || asMap(out["error"])["code"] != "timeout" || time.Since(started) > time.Second {
+		t.Fatal("upstream request lacked a bounded, correctly classified timeout")
 	}
 }

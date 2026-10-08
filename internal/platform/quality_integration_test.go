@@ -344,7 +344,7 @@ func TestCompletedJobResultIsWithheldAfterAuthorityNarrows(t *testing.T) {
 		t.Fatal(e)
 	}
 	f := newFixture(t)
-	_, _, role := f.addMember("job-reader@example.test", []Grant{{Resource: "tickets", Action: "read", Scope: "tenant", ReadFields: []string{"title"}}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
+	_, _, role := f.addMember("job-reader@example.test", []Grant{{Resource: "tickets", Action: "read", Scope: "tenant", ReadFields: []string{"title"}}, {Resource: "jobs", Action: "create", Scope: "self"}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
 	f.call("POST", "/resources/tickets", map[string]any{"data": map[string]any{"title": "foreign owner"}}, 200)
 	actor := f.loginAs("job-reader@example.test")
 	job := asMap(actor.call("POST", "/jobs", map[string]any{"type": "ticket_count", "payload": map[string]any{}}, 200)["data"])
@@ -539,7 +539,7 @@ func TestRunningJobRejectsNarrowedAuthorityAtPublication(t *testing.T) {
 		t.Fatal(e)
 	}
 	f := newFixture(t)
-	_, _, role := f.addMember("gated-reader@example.test", []Grant{{Resource: "tickets", Action: "read", Scope: "tenant", ReadFields: []string{"title", "priority"}}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
+	_, _, role := f.addMember("gated-reader@example.test", []Grant{{Resource: "tickets", Action: "read", Scope: "tenant", ReadFields: []string{"title", "priority"}}, {Resource: "jobs", Action: "create", Scope: "self"}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
 	f.call("POST", "/resources/tickets", map[string]any{"data": map[string]any{"title": "other owner"}}, 200)
 	actor := f.loginAs("gated-reader@example.test")
 	job := asMap(actor.call("POST", "/jobs", map[string]any{"type": "gated_ticket_count", "payload": map[string]any{}}, 200)["data"])
@@ -656,7 +656,7 @@ func TestCustomJobUpdatesAreIdempotentAndPayloadCannotCrossTenants(t *testing.T)
 		t.Fatal(e)
 	}
 	f := newFixture(t)
-	user, _, _ := f.addMember("job-editor@example.test", []Grant{{Resource: "tickets", Action: "update", Scope: "self", WriteFields: []string{"title"}}, {Resource: "tickets", Action: "read", Scope: "self", ReadFields: []string{"title"}}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
+	user, _, _ := f.addMember("job-editor@example.test", []Grant{{Resource: "tickets", Action: "update", Scope: "self", WriteFields: []string{"title"}}, {Resource: "tickets", Action: "read", Scope: "self", ReadFields: []string{"title"}}, {Resource: "jobs", Action: "create", Scope: "self"}, {Resource: "jobs", Action: "read", Scope: "self"}}, "")
 	record := asMap(f.call("POST", "/resources/tickets", map[string]any{"owner_id": user, "data": map[string]any{"title": "initial"}}, 200)["data"])
 	id := record["id"].(string)
 	actor := f.loginAs("job-editor@example.test")

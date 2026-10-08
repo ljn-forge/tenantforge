@@ -67,10 +67,13 @@ type JobContext interface {
 	UpdateRecord(string, int, map[string]any) (Record, error)
 }
 type JobDefinition struct {
-	Type, Resource, Action string
-	Validate               func(json.RawMessage) error
-	ResultFields           []Field
-	Run                    func(JobContext) (map[string]any, error)
+	Type, Resource, Action                     string
+	Label, LabelEN, Description, DescriptionEN string
+	// Nil keeps the job API-only; an explicit empty slice declares an empty UI form.
+	InputFields  []Field
+	Validate     func(json.RawMessage) error
+	ResultFields []Field
+	Run          func(JobContext) (map[string]any, error)
 }
 
 // Error exposes only registered, stable diagnostic codes. Provider errors must never become public messages.

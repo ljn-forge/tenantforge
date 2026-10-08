@@ -14,6 +14,9 @@ import (
 )
 
 func createJob(q *request) (any, error) {
+	if e := q.authorizeJobCreation(); e != nil {
+		return nil, e
+	}
 	var in struct {
 		Type    string          `json:"type"`
 		Payload json.RawMessage `json:"payload"`
@@ -29,13 +32,19 @@ func createJob(q *request) (any, error) {
 	if len(in.Payload) > 64<<10 || json.Unmarshal(in.Payload, &payload) != nil || payload == nil {
 		return nil, validation("Job payload must be a bounded object")
 	}
+	if e := q.require(definition.Resource, definition.Action); e != nil {
+		return nil, e
+	}
+	if definition.InputFields != nil {
+		if _, e := validateFields(definition.InputFields, payload, true); e != nil {
+			return nil, validation("Invalid declared job input")
+		}
+	}
+
 	if definition.Validate != nil {
 		if e := definition.Validate(append(json.RawMessage{}, in.Payload...)); e != nil {
 			return nil, validation("Invalid job payload")
 		}
-	}
-	if e := q.require(definition.Resource, definition.Action); e != nil {
-		return nil, e
 	}
 	if !Allowed(q.p, definition.Resource, definition.Action, q.controlRow(q.p.ID, q.p.DepartmentID)) {
 		b := &predicate{}
