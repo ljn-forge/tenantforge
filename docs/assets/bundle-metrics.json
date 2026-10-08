@@ -1,0 +1,100 @@
+{
+  "before": {
+    "entry": {
+      ".js": {
+        "bytes": 1039959,
+        "gzip_bytes": 335807,
+        "files": [
+          "assets/app-C0Di10ZY.js",
+          "assets/index-JfQ0ATLG.js",
+          "assets/request-2e_J0qpC.js"
+        ]
+      },
+      ".css": {
+        "bytes": 383271,
+        "gzip_bytes": 52941,
+        "files": [
+          "assets/index-CzlurLce.css"
+        ]
+      }
+    },
+    "login": {
+      ".js": {
+        "bytes": 1046479,
+        "gzip_bytes": 338801,
+        "files": [
+          "assets/AuthView-B_mvGnr8.js",
+          "assets/app-C0Di10ZY.js",
+          "assets/index-JfQ0ATLG.js",
+          "assets/request-2e_J0qpC.js"
+        ]
+      },
+      ".css": {
+        "bytes": 383271,
+        "gzip_bytes": 52941,
+        "files": [
+          "assets/index-CzlurLce.css"
+        ]
+      }
+    }
+  },
+  "after": {
+    "entry": {
+      ".js": {
+        "bytes": 344695,
+        "gzip_bytes": 122162,
+        "files": [
+          "assets/app-ODc4VML1.js",
+          "assets/css-DB4cLDaH.js",
+          "assets/index-DuJTiqni.js",
+          "assets/request-02EQ4nD3.js",
+          "assets/rolldown-runtime-CbXtAM7H.js"
+        ]
+      },
+      ".css": {
+        "bytes": 101765,
+        "gzip_bytes": 17258,
+        "files": [
+          "assets/app-CNpL_Sag.css",
+          "assets/index-ChfwFusc.css",
+          "assets/request-CtIYvYDv.css"
+        ]
+      }
+    },
+    "login": {
+      ".js": {
+        "bytes": 385932,
+        "gzip_bytes": 137491,
+        "files": [
+          "assets/AuthView-DBFtYBrJ.js",
+          "assets/app-ODc4VML1.js",
+          "assets/css-BLYh5zc-.js",
+          "assets/css-BR_MG_4_.js",
+          "assets/css-DB4cLDaH.js",
+          "assets/css-hqFhSt6s.js",
+          "assets/index-DuJTiqni.js",
+          "assets/request-02EQ4nD3.js",
+          "assets/rolldown-runtime-CbXtAM7H.js"
+        ]
+      },
+      ".css": {
+        "bytes": 112474,
+        "gzip_bytes": 19361,
+        "files": [
+          "assets/app-CNpL_Sag.css",
+          "assets/css-B6UgayC7.css",
+          "assets/css-CF-sYK2h.css",
+          "assets/css-DgHkEboq.css",
+          "assets/index-ChfwFusc.css",
+          "assets/request-CtIYvYDv.css"
+        ]
+      }
+    }
+  },
+  "measurement": {
+    "compression": "gzip level 9, independent files, mtime=0",
+    "scope": "static import closure of entry plus optional login route; deduplicated resources; excludes unvisited dynamic routes",
+    "before_commit": "482332e",
+    "after_frontend_commit": "3280e0d"
+  }
+}

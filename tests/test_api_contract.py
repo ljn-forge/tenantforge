@@ -29,6 +29,19 @@ class APIContractTests(unittest.TestCase):
         self.assertFalse(schemas['Capabilities']['additionalProperties'])
         self.assertFalse(schemas['Workload'].get('required'), 'unauthorized KPI fields must be omittable')
 
+    def test_job_catalog_and_safe_display_metadata_have_closed_schemas(self):
+        contract = json.loads((ROOT / 'docs/openapi.json').read_text())
+        self.assertTrue('/job-types' in contract['paths'], 'extension job catalog is missing')
+        schemas = contract['components']['schemas']
+        self.assertEqual(schemas['Job']['properties']['definition']['$ref'], '#/components/schemas/JobPresentation')
+        self.assertFalse(schemas['JobPresentation']['additionalProperties'])
+        self.assertNotIn('payload', schemas['JobPresentation']['properties'])
+        self.assertNotIn('input_fields', schemas['JobPresentation']['properties'])
+        self.assertEqual(set(schemas['JobType']['required']), {
+            'type', 'label', 'label_en', 'resource', 'action', 'input_fields', 'result_fields',
+        })
+        self.assertFalse(schemas['JobType']['additionalProperties'])
+
 
 if __name__ == '__main__':
     unittest.main()

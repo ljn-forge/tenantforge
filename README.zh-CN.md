@@ -10,6 +10,10 @@ Go + Vue 多租户后台平台，统一管理功能权限、角色权限、数�
 
 [权限矩阵](docs/assets/roles-zh.png) · [字段与数据范围](docs/assets/roles-grant-zh.png) · [深色主题](docs/assets/dashboard-dark.png) · [移动端](docs/assets/mobile-dark.png)
 
+[安装资产扩展](docs/extensions.md)后，可自动生成
+[任务表单](docs/assets/extension-task-create-zh.png)与
+[中文结果展示](docs/assets/extension-task-zh.png)。
+
 ## 启动
 
 需要 Docker Compose 与 Python 3.12+。本地开发另需 Go 1.26.8、Node 24.21 或兼容的更新 LTS 版本。
@@ -39,7 +43,7 @@ make dev
 - 真实待办工作台，中文/英文、浅色/深色主题及移动端布局。
 - 默认超级管理员、直接新增用户、Cookie 会话、CSRF、找回密码、会话撤销、TOTP 与恢复码；可配置 OIDC 登录。
 - 工单状态流转与并发冲突、字典、设置、通知、CSV 导入导出、文件、持久任务与审计。
-- 公共 Go 扩展接口，可注册业务操作和后台任务；资产审批与盘点示例无需修改核心。
+- 公共 Go 扩展接口，可注册业务操作和后台任务；按权限发现任务、自动生成输入表单、展示中文结果，资产审批与盘点示例无需修改核心。
 - 短事务上传及配额预留，任务、邮件、清理独立执行；诊断错误码、Prometheus 指标、版本化迁移、备份恢复与容器部署。
 
 ## 文档

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run persisted browser acceptance against a fresh, isolated local database."""
+import argparse
 import os
 from pathlib import Path
 import signal
@@ -11,6 +12,11 @@ import urllib.request
 
 root = Path(__file__).resolve().parent.parent
 os.chdir(root)
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--built', action='store_true', help='Build and exercise production chunks with Vite preview.')
+parser.add_argument('--assets', action='store_true', help='Enable the public extension in its own isolated browser database.')
+arguments = parser.parse_args()
+database = 'tenantforge_browser_assets' if arguments.assets else 'tenantforge_browser'
 for port in [8091, 5178]:
     try:
         connection = socket.create_connection(('127.0.0.1', port), timeout=0.2)
@@ -18,9 +24,9 @@ for port in [8091, 5178]:
         continue
     connection.close()
     sys.exit(f'Port {port} is already in use; stop the existing browser verification services.')
-probe = subprocess.run(['docker', 'compose', 'exec', '-T', 'postgres', 'psql', '-U', 'tenantforge_owner', '-d', 'postgres', '-tA', '-c', "SELECT count(*) FROM pg_database WHERE datname='tenantforge_browser'"], check=True, capture_output=True, text=True)
+probe = subprocess.run(['docker', 'compose', 'exec', '-T', 'postgres', 'psql', '-U', 'tenantforge_owner', '-d', 'postgres', '-tA', '-c', f"SELECT count(*) FROM pg_database WHERE datname='{database}'"], check=True, capture_output=True, text=True)
 if probe.stdout.strip() == '0':
-    subprocess.run(['docker', 'compose', 'exec', '-T', 'postgres', 'psql', '-U', 'tenantforge_owner', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', 'CREATE DATABASE tenantforge_browser OWNER tenantforge_owner'], check=True)
+    subprocess.run(['docker', 'compose', 'exec', '-T', 'postgres', 'psql', '-U', 'tenantforge_owner', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', f'CREATE DATABASE {database} OWNER tenantforge_owner'], check=True)
 processes = []
 
 def interrupted(*_):
@@ -29,10 +35,13 @@ def interrupted(*_):
 signal.signal(signal.SIGTERM, interrupted)
 signal.signal(signal.SIGINT, interrupted)
 try:
-    processes.append(subprocess.Popen([sys.executable, 'scripts/browser-server.py', '--fresh'], start_new_session=True))
     environment = {key: value for key, value in os.environ.items() if not key.startswith('TF_') or key.startswith('TF_E2E_')}
     environment['VITE_API_PROXY'] = 'http://127.0.0.1:8091'
-    processes.append(subprocess.Popen(['npm', 'run', 'dev'], cwd=root / 'web', env=environment, start_new_session=True))
+    if arguments.built:
+        subprocess.run(['npm', 'run', 'build'], cwd=root / 'web', env=environment, check=True)
+    server_arguments = ['--fresh'] + (['--assets'] if arguments.assets else [])
+    processes.append(subprocess.Popen([sys.executable, 'scripts/browser-server.py', *server_arguments], start_new_session=True))
+    processes.append(subprocess.Popen(['npm', 'run', 'preview' if arguments.built else 'dev'], cwd=root / 'web', env=environment, start_new_session=True))
     deadline = time.monotonic() + 90
     for origin, path in [('http://127.0.0.1:8091', '/api/v1/setup/status'), ('http://localhost:5178', '/')]:
         while True:
@@ -49,6 +58,7 @@ try:
             time.sleep(0.2)
     environment['TF_E2E_URL'] = 'http://localhost:5178'
     environment['TF_E2E_ALLOW_SETUP'] = '1'
+    environment['TF_E2E_ASSETS'] = '1' if arguments.assets else '0'
     test = subprocess.Popen(['npm', 'run', 'test:e2e'], cwd=root / 'web', env=environment, start_new_session=True)
     processes.append(test)
     code = test.wait(timeout=360)

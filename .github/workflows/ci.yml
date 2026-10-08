@@ -23,7 +23,8 @@ jobs:
       - run: make check
       - run: make integration
       - run: cd web && npx playwright install --with-deps chromium
-      - run: TF_E2E_CHANNEL=chromium python3 scripts/browser-check.py
+      - run: TF_E2E_CHANNEL=chromium python3 scripts/browser-check.py --built
+      - run: TF_E2E_CHANNEL=chromium python3 scripts/browser-check.py --built --assets
       - run: python3 scripts/recovery-check.py
       - run: python3 -m unittest discover -s tests -p 'test_*.py'
       - run: npx --yes @redocly/cli@2.59.0 lint --extends minimal docs/openapi.json

@@ -78,6 +78,10 @@ classification; provider error text never becomes an API message.
 ```go
 extension.RegisterJob(extension.JobDefinition{
     Type: "assets_inventory", Resource: "assets", Action: "read",
+    Label: "资产盘点", LabelEN: "Asset inventory",
+    Description: "统计当前权限范围内可见的资产，不修改资产数据。",
+    DescriptionEN: "Count assets visible under your current access without changing records.",
+    InputFields: []extension.Field{},
     ResultFields: []extension.Field{{
         Key: "count", Label: "可见资产数", LabelEN: "Visible asset count", Type: "number",
     }},
@@ -89,10 +93,33 @@ extension.RegisterJob(extension.JobDefinition{
 })
 ```
 
-POST `/jobs` with `{type:"assets_inventory",payload:{}}`. `Validate` can enforce
-a narrower payload contract; the example accepts only an empty object. The core
-requires a JSON object of at most 64 KiB, a known type and the registered
-resource/action grant.
+POST `/jobs` with `{type:"assets_inventory",payload:{}}`. The core requires
+`jobs:create` **and** the registered resource/action grant, a known type and a JSON
+object of at most 64 KiB. Submission and execution retain scoped record checks,
+live membership/permission validation and tenant quotas.
+
+Declaring `InputFields` enables the management page's task creation form. An
+explicitly empty slice, as above, declares a task accepting `{}`. A nil slice
+(the zero value) retains existing API-only jobs and their custom `Validate`
+contract. Nonempty input fields reuse `extension.Field`'s bilingual labels,
+required values, enum options and supported types. The core rejects unknown
+keys and validates declared values before invoking `Validate`; that callback
+can add business restrictions. Declare at most 32 input fields, without sensitive
+or readonly fields. Metadata cannot establish authority over a target record.
+
+GET `/job-types` requires `jobs:create` and returns only UI-declared jobs whose
+registered resource/action the actor holds in the current organization. The jobs
+page generates a form from this catalog and posts the bounded payload; no custom
+frontend route is needed. Catalog visibility does not guarantee execution if
+permissions, scoped records or quotas change. The job response includes safe
+`definition` labels and result field descriptors, so the details page displays
+typed results with readable names. Stored input, callbacks, provider error text
+and authority hashes are never returned.
+
+Adding `jobs:create` is explicit for custom roles. The standard migration command
+refreshes the protected Owner role with current platform actions and audits that
+change; custom role grants are preserved. Run migration with the same registry
+before serving an upgraded binary.
 
 `JobContext` exposes `Context`, stable `ID`, `TenantID`, `ActorID`, `Payload`,
 `WalkRecords` and `UpdateRecord`. Record services recheck current membership,
@@ -131,4 +158,15 @@ with the owner connection only.
 
 `examples/assets/assets_integration_test.go` uses the separate
 `tenantforge_extension` database to verify migration idempotency, CRUD, approval,
-audit and persisted job completion. It never resets the business database.
+audit, task discovery and persisted job completion. It never resets the business
+database. Exercise the generated UI against production chunks with:
+
+```sh
+python3 scripts/browser-check.py --built --assets
+```
+
+This command uses only `tenantforge_browser_assets` and `.data/browser_assets`,
+keeps the normal browser/recovery fixture separate, and resets its own fixtures
+after checking for active connections. It starts the public example entrypoint,
+not the stock binary. Vite preview is used only for local acceptance; deployment
+continues to serve the built assets through the application/container.

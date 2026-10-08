@@ -1,5 +1,57 @@
 # Verification evidence
 
+## Follow-up checks on 2026-10-08
+
+The extension task and loading-quality upgrade was checked against the same Go,
+Node and PostgreSQL toolchain below. Existing private administrator credentials
+were not reset. The stock binary keeps example modules opt-in.
+
+| Check | Observed result |
+| --- | --- |
+| Project check | `make check` passed: Go race/unit tests, vet, formatting, 58 frontend tests in 18 files, type check, production build and gzip budgets |
+| Full real PostgreSQL race suite | Passed: platform 43.765s, asset example 2.534s, extension 1.693s, migrations 1.479s |
+| Production browser, stock binary | 3 passed in 27.4s; extension-only test intentionally skipped (`browser-check.py --built`) |
+| Production browser, installed public extension | 4 passed in 37.4s (`browser-check.py --built --assets`); actual task creation/completion, bilingual typed results, viewport checks, mobile dark layout and styled message/confirmation services |
+| Python tooling regressions | 19 passed, including static-import deduplication and resource-budget failures |
+| REST specification | All 63 registered routes match OpenAPI; pinned Redocly 2.59.0 validation passed with the existing two OIDC redirect warnings |
+| Frontend audit | Zero reported advisories including development dependencies; production dependency graph unchanged |
+| Recovery | Eleven table fingerprints, object checksums, recovered encrypted MFA sign-in, permissions and authenticated file download passed against a fresh `tenantforge_restore_*` database |
+| Container | Final application image built; container frontend tests and production build passed |
+| Independent review | SPEC and QUALITY passed; directly identified jobs:create operation/department-scope gaps were closed with regressions |
+
+The existing OIDC bounded-context test still expected 503 after the earlier
+HTTP timeout classification changed to 504. It now asserts both 504 and the safe
+`timeout` code while retaining the elapsed-time bound; focused and full database
+race suites passed. No OIDC production behavior was changed in this follow-up.
+
+Registration/input tests cover undeclared/required/type/enum/date values, the
+custom validator, API-only compatibility and nil-versus-empty deep copies.
+Authorization tests cover missing task-creation grants, missing business grants,
+excluded and included department scopes, tenant membership and protected Owner
+grant activation. Upgrade tests preserve custom role grants and administrator
+password hashes and verify activation auditing is idempotent. Frontend tests
+cover rejected inputs, duplicate submission, failed catalog retry and context
+changes during loading/submission/inspection.
+
+Gzip sizes are sums of independently compressed files at level 9, following the
+recursive Vite static-import manifest closure. They are resource sizes, not
+measured latency or a claim about proxy compression. The [complete file lists](assets/bundle-metrics.json)
+include the shared chunks, rather than only the entry file.
+
+| Profile | JavaScript before / after | CSS before / after |
+| --- | --- | --- |
+| Entry and static dependencies | 335807 / 122162 bytes | 52941 / 17258 bytes |
+| Login and its dependencies | 338801 / 137491 bytes | 52941 / 19361 bytes |
+
+The previous build exceeds the new 160 KiB JS / 25 KiB CSS budgets; the current
+build passes. `make check` keeps this guard in CI. Visual evidence comes from the
+installed public extension and persisted acceptance records:
+[task creation](assets/extension-task-create-zh.png),
+[Chinese typed results](assets/extension-task-zh.png), and
+[mobile dark form](assets/extension-task-mobile-dark.png).
+
+## Earlier checks on 2026-10-07
+
 Observed locally on 2026-10-07 with Go 1.26.8, Node 24.21, PostgreSQL 18,
 Mailpit and the pinned container images. These are application verification
 results, not claims about a future deployment or long-term production use.

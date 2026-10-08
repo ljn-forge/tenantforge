@@ -32,9 +32,13 @@ func Register() error {
 	}
 	if err := extension.RegisterJob(extension.JobDefinition{
 		Type: "assets_inventory", Resource: "assets", Action: "read",
-		Validate:     validateInventory,
-		ResultFields: []extension.Field{{Key: "count", Label: "可见资产数", LabelEN: "Visible asset count", Type: "number"}},
-		Run:          inventory,
+		Label: "资产盘点", LabelEN: "Asset inventory",
+		Description:   "统计当前权限范围内可见的资产，不修改资产数据。",
+		DescriptionEN: "Count assets visible under your current access without changing records.",
+		InputFields:   []extension.Field{},
+		Validate:      validateInventory,
+		ResultFields:  []extension.Field{{Key: "count", Label: "可见资产数", LabelEN: "Visible asset count", Type: "number"}},
+		Run:           inventory,
 	}); err != nil {
 		return err
 	}

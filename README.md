@@ -10,6 +10,10 @@ TenantForge combines a same-origin web console with a Go service and PostgreSQL.
 
 [Permission matrix](docs/assets/roles-matrix.png) · [Field and record scopes](docs/assets/roles-grant.png) · [Dark theme](docs/assets/dashboard-dark.png) · [Mobile](docs/assets/mobile-dark.png)
 
+The [installed asset extension](docs/extensions.md) also generates its own
+[task form](docs/assets/extension-task-create-zh.png) and
+[typed results](docs/assets/extension-task-zh.png).
+
 ## Start locally
 
 Requirements: Docker with Compose, Python 3.12 or newer. Development also requires Go 1.26.8 and Node 24.21 or a supported newer LTS release.
@@ -39,7 +43,7 @@ Console: http://localhost:5178. Local email mailbox: http://localhost:8029. The 
 - Actual-workload dashboard, Chinese/English presentation, light/dark themes and responsive layouts.
 - Default superadministrator, direct user creation, opaque cookie sessions, CSRF, password recovery, session revocation, TOTP and recovery codes; optional configured OIDC.
 - Tickets with workflow and optimistic versions, dictionaries, settings, notifications, CSV import/export, protected files, durable jobs and audit records.
-- Public Go extension interfaces for registered record operations and background jobs, with an asset approval/inventory example.
+- Public Go extension interfaces for registered record operations and background jobs, including permission-filtered task discovery, generated input forms and bilingual typed results; asset approval/inventory is a complete example.
 - Short upload transactions and quota reservations, independent job/mail/collection lanes, typed diagnostics, Prometheus metrics, migration/runtime separation, backup/recovery and container deployment.
 
 ## Documentation

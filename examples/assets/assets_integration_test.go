@@ -144,6 +144,14 @@ func TestRegisteredModuleWorksThroughHTTPAndEmbeddedMigration(t *testing.T) {
 	if !foundApproval {
 		t.Fatal("approval did not commit a core-managed audit")
 	}
+	catalog := call("GET", "/job-types", nil)["data"].([]any)
+	if len(catalog) != 1 {
+		t.Fatal("public extension task was not discoverable")
+	}
+	task := catalog[0].(map[string]any)
+	if task["type"] != "assets_inventory" || task["label_en"] != "Asset inventory" || len(task["input_fields"].([]any)) != 0 {
+		t.Fatal("public extension task descriptor differs from its declared UI contract")
+	}
 	job := call("POST", "/jobs", map[string]any{"type": "assets_inventory", "payload": map[string]any{}})["data"].(map[string]any)
 	deadline := time.Now().Add(8 * time.Second)
 	for {
@@ -159,6 +167,15 @@ func TestRegisteredModuleWorksThroughHTTPAndEmbeddedMigration(t *testing.T) {
 	result := job["result"].(map[string]any)
 	if result["count"] != float64(1) {
 		t.Fatal("registered task did not walk its authorized records")
+	}
+	presentation := job["definition"].(map[string]any)
+	if presentation["label"] != "资产盘点" || presentation["result_fields"].([]any)[0].(map[string]any)["label_en"] != "Visible asset count" {
+		t.Fatal("persisted job did not retain safe bilingual result presentation")
+	}
+	for _, private := range []string{"payload", "authority_hash", "authority_resource", "authority_action"} {
+		if _, exposed := job[private]; exposed {
+			t.Fatal("extension job response exposed private execution data")
+		}
 	}
 
 }

@@ -4494,7 +4494,7 @@
             "$ref": "#/components/responses/Timeout"
           }
         },
-        "description": "Only registered job types. Registered resource/action authority is required; record services recheck authoritative tenant scope. Payload ownership values cannot establish permission.",
+        "description": "Requires jobs:create plus the registered resource/action, current authorized scope and available job quota. Payload is a JSON object at most 64 KiB. Declared fields reject unknown keys and validate required values/types/options before the custom validator. API-only legacy definitions retain custom validation.",
         "requestBody": {
           "required": true,
           "content": {
@@ -5252,6 +5252,80 @@
         },
         "description": "Requires this registered action, current row scope, action-specific writable fields and optimistic version. Core owns final validation, persistence and audit."
       }
+    },
+    "/job-types": {
+      "get": {
+        "operationId": "get__job_types",
+        "summary": "Discover authorized extension task forms",
+        "parameters": [
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/JobType"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "description": "Requires jobs:create and the registered resource/action grant. Only definitions with declared input fields are returned. Submission and execution revalidate live authority, record scopes, field permissions and quotas. No callbacks, stored payload or authority hashes are exposed."
+      }
     }
   },
   "components": {
@@ -5681,6 +5755,9 @@
             "type": "object",
             "additionalProperties": true,
             "description": "Bounded result projected through registered nonsensitive typed fields."
+          },
+          "definition": {
+            "$ref": "#/components/schemas/JobPresentation"
           }
         },
         "required": [],
@@ -5999,6 +6076,86 @@
           "counts",
           "recent_activity",
           "workload"
+        ],
+        "additionalProperties": false
+      },
+      "JobPresentation": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "label_en": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "result_fields": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/Field"
+            }
+          }
+        },
+        "required": [
+          "label",
+          "label_en",
+          "result_fields"
+        ],
+        "additionalProperties": false
+      },
+      "JobType": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "label_en": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_en": {
+            "type": "string"
+          },
+          "result_fields": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/Field"
+            }
+          },
+          "type": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "input_fields": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/Field"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "label_en",
+          "resource",
+          "action",
+          "input_fields",
+          "result_fields"
         ],
         "additionalProperties": false
       }
