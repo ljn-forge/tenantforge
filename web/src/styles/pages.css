@@ -375,6 +375,12 @@
   max-width: 420px;
   color: var(--el-color-danger);
 }
+.typed-job-results {
+  margin: 24px 0 16px;
+}
+.typed-job-results h3 {
+  margin-bottom: 8px;
+}
 .record-operations {
   display: flex;
   flex-wrap: wrap;
