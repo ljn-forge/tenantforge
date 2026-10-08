@@ -27,4 +27,4 @@ Unauthorized types are not discoverable; direct POST still enforces authority; m
 
 ## Final verification
 
-The typed extension task workflow and production loading budget passed. The final built browser run passed all four cases in 37.0s. A pending organization-switch reload race exposed by acceptance was reproduced with a stalled request, fixed with a user-bound validated selection intent, and independently reviewed; all 61 frontend tests passed. Existing credentials and normal application data remain subject to the final preserved-data comparison during local cutover.
+The typed extension task workflow and production loading budget passed. The final built browser run passed all four cases in 37.0s. A pending organization-switch reload race exposed by acceptance was reproduced with a stalled request, fixed with a user-bound validated selection intent, and independently reviewed; all 61 frontend tests passed. The final source was merged locally, rebuilt and started healthy on port 8090. All ten preserved-data comparisons passed; protected Owner grants were intentionally refreshed and audited. No external publication was performed.

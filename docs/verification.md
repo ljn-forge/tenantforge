@@ -54,6 +54,19 @@ installed public extension and persisted acceptance records:
 [Chinese typed results](assets/extension-task-zh.png), and
 [mobile dark form](assets/extension-task-mobile-dark.png).
 
+The final source was fast-forwarded into local `main`, where `make check` passed
+with all 61 frontend tests. A rebuilt image was started on port 8090 after stopping
+the old app; migration activation and readiness completed successfully. The live
+administrator login, served assets and anonymous task-catalog 401 boundary passed
+in a fresh browser without attempting private administrator credentials.
+
+All ten preserved-data fingerprints matched the private pre-upgrade baseline:
+users (including password hashes), tenants, memberships, departments, member-role
+assignments, resources, files, jobs, invitations and non-Owner roles. Protected
+Owner grants were intentionally refreshed to include `jobs:create`; activation
+adds an audit entry. Consequently, Owner roles and audit are not claimed unchanged.
+The upgrade backup and fingerprint files remain private and ignored.
+
 ## Earlier checks on 2026-10-07
 
 Observed locally on 2026-10-07 with Go 1.26.8, Node 24.21, PostgreSQL 18,
