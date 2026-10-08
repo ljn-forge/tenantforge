@@ -78,8 +78,18 @@ export async function loadMe() {
   }
 }
 export async function switchTenant(id: string) {
+  const identity = state.me
+  if (!identity?.tenants.some((tenant) => tenant.id === id && tenant.status === 'active'))
+    throw new APIError(
+      403,
+      'workspace_unavailable',
+      t('此组织当前不可用', 'This workspace is unavailable'),
+    )
+  // Persist the user-bound selection before asynchronous authorization so a reload
+  // retains the intent. loadMe still verifies fresh memberships before restoring it.
+  rememberWorkspace(identity.user.id, id)
   state.loading = true
-  state.me = state.me ? { ...state.me, permissions: [], modules: [] } : null
+  state.me = { ...identity, permissions: [], modules: [] }
   state.tenant = id
   setTenant(id)
   try {

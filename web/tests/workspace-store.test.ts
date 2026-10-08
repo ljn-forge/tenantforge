@@ -110,3 +110,53 @@ test('logout clears the tab preference together with client session context', as
   expect(state.tenant).toBe('')
   expect(state.me).toBeNull()
 })
+
+test('refresh during a pending workspace switch restores the selected intent after fresh membership verification', async () => {
+  mockIdentity(identity())
+  await loadMe()
+  let finish!: (value: Response) => void
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve
+        }),
+    ),
+  )
+  const switching = switchTenant('second').catch((error) => error)
+  expect(state.loading).toBe(true)
+  expect(state.me?.permissions).toEqual([])
+  expect(JSON.parse(sessionStorage.getItem(workspaceKey)!)).toEqual({
+    user_id: 'user-a',
+    tenant_id: 'second',
+  })
+  // Simulate a reload before the scoped identity response completes.
+  resetClient()
+  state.me = null
+  state.tenant = ''
+  const selected = mockIdentity(identity())
+  await loadMe()
+  expect(selected).toEqual(['', 'second'])
+  expect(state.tenant).toBe('second')
+  expect(state.me).toMatchObject({ permissions: [{ resource: 'second' }] })
+  finish(new Response(JSON.stringify({ data: identity() })))
+  await switching
+  expect(state.tenant).toBe('second')
+})
+
+test.each(['unknown', 'second'])(
+  'unknown or inactive workspace selection is rejected without persisting or requesting it (%s)',
+  async (tenant) => {
+    const selected = mockIdentity(identity('user-a', 'suspended'))
+    await loadMe()
+    selected.length = 0
+    await expect(switchTenant(tenant)).rejects.toMatchObject({ code: 'workspace_unavailable' })
+    expect(selected).toEqual([])
+    expect(state.tenant).toBe('first')
+    expect(JSON.parse(sessionStorage.getItem(workspaceKey)!)).toEqual({
+      user_id: 'user-a',
+      tenant_id: 'first',
+    })
+  },
+)
