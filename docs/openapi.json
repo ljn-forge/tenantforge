@@ -3259,6 +3259,21 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "queue",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine",
+                "active",
+                "resolved",
+                "closed",
+                "all"
+              ]
+            },
+            "description": "Tickets only. mine = current owner and open/in_progress; active = open/in_progress. Status classifications require readable status and apply before paging/count. Invalid values or another module yield 422."
           }
         ],
         "security": [
@@ -3775,6 +3790,10 @@
                   },
                   "status": {
                     "type": "string"
+                  },
+                  "resolution": {
+                    "type": "string",
+                    "description": "Nonblank fresh summary required for resolved; requires status and resolution writable under update."
                   }
                 },
                 "required": [
@@ -3785,7 +3804,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Tickets only. Valid state graph and expected version required. Moving into resolved requires a fresh nonblank resolution summary; generic PATCH enforces the same invariant."
       }
     },
     "/resources/{module}/export": {
@@ -5326,6 +5346,321 @@
         },
         "description": "Requires jobs:create and the registered resource/action grant. Only definitions with declared input fields are returned. Submission and execution revalidate live authority, record scopes, field permissions and quotas. No callbacks, stored payload or authority hashes are exposed."
       }
+    },
+    "/resources/{module}/{id}/activity": {
+      "get": {
+        "operationId": "get_ticket_activity",
+        "summary": "GET /resources/{module}/{id}/activity",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Must be tickets."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "in": "query"
+          },
+          {
+            "name": "page_size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "in": "query"
+          }
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TicketEvent"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "description": "Tickets only; other modules return 404. Current parent ticket read required. Newest first. Reply/note visibility and total follow current parent field read/unmask; hidden entries do not contribute. Safe metadata only; historical resolution body requires resolution read."
+      }
+    },
+    "/resources/{module}/{id}/replies": {
+      "post": {
+        "operationId": "post_ticket_reply",
+        "summary": "POST /resources/{module}/{id}/replies",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Must be tickets."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TicketReplyResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketReplyInput"
+              }
+            }
+          }
+        },
+        "description": "Tickets only; other modules return 404. Current parent read and tickets:reply plus matching field write required. Public replies use description; notes require explicit read+unmask internal_notes. Closed/stale writes rejected; record version, event and redacted audit commit atomically. Does not send customer email."
+      }
+    },
+    "/resources/{module}/{id}/assignment": {
+      "post": {
+        "operationId": "post_ticket_assignment",
+        "summary": "POST /resources/{module}/{id}/assignment",
+        "parameters": [
+          {
+            "name": "module",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Must be tickets."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "security": [
+          {
+            "session": [],
+            "csrf": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Record"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Validation"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "499": {
+            "$ref": "#/components/responses/Cancelled"
+          },
+          "504": {
+            "$ref": "#/components/responses/Timeout"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketAssignmentInput"
+              }
+            }
+          }
+        },
+        "description": "Tickets only; other modules return 404. Current original ticket read and tickets:assign on original/resulting rows required; tickets:update is not required. Target must be an active tenant member. Expected version and tenant-aware department references enforced."
+      }
     }
   },
   "components": {
@@ -5960,6 +6295,18 @@
               "type": "string"
             },
             "uniqueItems": true
+          },
+          "reply_kinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "reply",
+                "note"
+              ]
+            },
+            "uniqueItems": true,
+            "description": "Optional ticket composer kinds allowed by current parent scope, reply operation, fields and closed state. Missing means none."
           }
         },
         "required": [
@@ -6156,6 +6503,149 @@
           "action",
           "input_fields",
           "result_fields"
+        ],
+        "additionalProperties": false
+      },
+      "TicketEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ticket_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "assigned",
+              "status_changed",
+              "reply",
+              "note"
+            ]
+          },
+          "actor_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "actor_name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "body": {
+            "type": "string"
+          },
+          "from_status": {
+            "type": "string"
+          },
+          "to_status": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "department_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "ticket_id",
+          "kind",
+          "actor_id",
+          "actor_name",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "TicketReplyInput": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "reply",
+              "note"
+            ]
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "description": "Nonblank plain text, also bounded to 8192 UTF-8 bytes."
+          }
+        },
+        "required": [
+          "version",
+          "kind",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "TicketReplyResult": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/Record"
+          },
+          "event": {
+            "$ref": "#/components/schemas/TicketEvent"
+          }
+        },
+        "required": [
+          "record",
+          "event"
+        ],
+        "additionalProperties": false
+      },
+      "TicketAssignmentInput": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "department_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Omitted follows target membership; null clears department."
+          }
+        },
+        "required": [
+          "version",
+          "owner_id"
         ],
         "additionalProperties": false
       }

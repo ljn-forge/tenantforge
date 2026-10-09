@@ -1,5 +1,55 @@
 # Verification evidence
 
+## Internal support workflow checks on 2026-10-09
+
+The complete internal support example was verified against persisted, isolated
+PostgreSQL fixtures. It uses the existing ticket resource, authorization engine,
+version checks and transaction/audit boundaries; no dependencies were added.
+
+| Check | Observed result |
+| --- | --- |
+| Full real PostgreSQL race suite | Passed: platform 48.197s, asset example 2.356s, extension 1.241s, migrations 1.338s |
+| Production browser, stock binary | 4 passed in 42.5s; the opt-in asset example test was intentionally skipped |
+| Production browser, installed public extension | 5 passed in 51.9s, including the support workflow and visible mobile dark activity history |
+| Python tooling and API contracts | 20 passed; all 66 registered operations match OpenAPI |
+| REST specification validation | Pinned Redocly 2.59.0 passed with the existing two OIDC redirect warnings |
+| Recovery | Twelve table fingerprints, object checksums, recovered encrypted MFA login, permissions and authenticated file download passed in a fresh isolated restore database |
+| Existing installation upgrade rehearsal | The private pre-support backup restored into a new database and migrated from 010 to 011; all ten preserved-data fingerprints matched and no historical ticket events were fabricated |
+| Independent review | Backend/frontend specification and quality reviews passed; the new-ticket normal-priority regression was also reviewed |
+
+Business acceptance creates departments, support role drafts and separate
+employee accounts through ordinary APIs and UI. A registrar enters a customer's
+problem, a supervisor assigns it, and the receiving agent starts work, records
+customer communication and a private note, supplies a required resolution,
+closes and reopens the ticket. The former assignee loses access. A read-only
+observer sees permitted communication but neither private notes nor their count;
+another tenant cannot read the history. Closed tickets cannot accept replies.
+Mobile acceptance checks the visible drawer, history and page overflow, rather
+than merely finding hidden DOM text.
+
+Backend regressions cover stale/concurrent submissions, exactly-once events,
+audit rollback, required fresh resolution through generic writes and custom
+jobs, field and operation scope, assignment without update authority, current
+parent visibility and queue totals. Migration 011 forces tenant RLS, binds
+events to a ticket and tenant actor, and grants the runtime role only SELECT
+and INSERT on the history table. Existing ticket deletion still owns its
+cascading lifecycle; runtime history cannot be directly edited or deleted.
+
+Upgrade behavior is documented in [the support guide](support-desk.md): custom
+roles need an explicit `tickets:reply` grant, resolving a ticket requires a
+fresh summary, and pre-upgrade tickets receive no invented event history.
+Communication is stored for employees; outbound email and a customer portal
+are not part of this workflow.
+
+Screenshots contain persisted acceptance data:
+[Chinese queue](assets/support-queue-zh.png),
+[ticket handling](assets/support-ticket-zh.png), and
+[mobile dark history](assets/support-mobile-dark.png).
+The current bundle measurement in [bundle-metrics.json](assets/bundle-metrics.json)
+is 122314 JS / 17586 CSS bytes for the entry and 137634 JS / 19689 CSS bytes
+for login, under the 160 KiB JS / 25 KiB CSS budgets. The historical extension
+measurement below is retained under `after_extension_upgrade`.
+
 ## Follow-up checks on 2026-10-08
 
 The extension task and loading-quality upgrade was checked against the same Go,

@@ -41,6 +41,66 @@
   "after": {
     "entry": {
       ".js": {
+        "bytes": 345075,
+        "gzip_bytes": 122314,
+        "files": [
+          "assets/app-sjjIEosi.js",
+          "assets/css-Cn5JHUA_.js",
+          "assets/index-B9EWIeOV.js",
+          "assets/request-oYqVPo-A.js",
+          "assets/rolldown-runtime-CbXtAM7H.js"
+        ]
+      },
+      ".css": {
+        "bytes": 103479,
+        "gzip_bytes": 17586,
+        "files": [
+          "assets/app-CNpL_Sag.css",
+          "assets/index-D-vC861s.css",
+          "assets/request-CtIYvYDv.css"
+        ]
+      }
+    },
+    "login": {
+      ".js": {
+        "bytes": 386315,
+        "gzip_bytes": 137634,
+        "files": [
+          "assets/AuthView-CqJ9TzAa.js",
+          "assets/app-sjjIEosi.js",
+          "assets/css-C--a1n8i.js",
+          "assets/css-Cl7jD2u0.js",
+          "assets/css-Cn5JHUA_.js",
+          "assets/css-D5myDYi1.js",
+          "assets/index-B9EWIeOV.js",
+          "assets/request-oYqVPo-A.js",
+          "assets/rolldown-runtime-CbXtAM7H.js"
+        ]
+      },
+      ".css": {
+        "bytes": 114188,
+        "gzip_bytes": 19689,
+        "files": [
+          "assets/app-CNpL_Sag.css",
+          "assets/css-B6UgayC7.css",
+          "assets/css-CF-sYK2h.css",
+          "assets/css-DgHkEboq.css",
+          "assets/index-D-vC861s.css",
+          "assets/request-CtIYvYDv.css"
+        ]
+      }
+    }
+  },
+  "measurement": {
+    "compression": "gzip level 9, independent files, mtime=0",
+    "scope": "static import closure of entry plus optional login route; deduplicated resources; excludes unvisited dynamic routes",
+    "before_commit": "482332e",
+    "after_frontend_commit": "f40a894",
+    "after_extension_frontend_commit": "8014149"
+  },
+  "after_extension_upgrade": {
+    "entry": {
+      ".js": {
         "bytes": 344868,
         "gzip_bytes": 122274,
         "files": [
@@ -90,11 +150,5 @@
         ]
       }
     }
-  },
-  "measurement": {
-    "compression": "gzip level 9, independent files, mtime=0",
-    "scope": "static import closure of entry plus optional login route; deduplicated resources; excludes unvisited dynamic routes",
-    "before_commit": "482332e",
-    "after_frontend_commit": "8014149"
   }
 }

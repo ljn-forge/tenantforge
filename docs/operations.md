@@ -43,7 +43,7 @@ An explicitly selected environment file overrides inherited values for its decla
 
 S3 objects are external to the local snapshot. Use the provider's versioning/replication/backup controls and restore the same object keys alongside the database. Test provider restore before relying on an S3 deployment.
 
-For a repeatable local recovery drill, run `make browser` followed by `make recovery`. The drill snapshots only the isolated browser database and its objects, restores into a new database, compares eleven table fingerprints and every object checksum, and verifies encrypted MFA sign-in, permissions and an authenticated file download. It temporarily enables MFA on the browser fixture administrator and disables it during cleanup. Private archives and restored databases are retained under `.backups` for inspection. It never resets the main database.
+For a repeatable local recovery drill, run `make browser` followed by `make recovery`. The drill snapshots only the isolated browser database and its objects, restores into a new database, compares twelve table fingerprints (including ticket activity) and every object checksum, and verifies encrypted MFA sign-in, permissions and an authenticated file download. It temporarily enables MFA on the browser fixture administrator and disables it during cleanup. Private archives and restored databases are retained under `.backups` for inspection. It never resets the main database.
 
 ## Upgrade
 
@@ -52,3 +52,7 @@ Take and verify a backup, stop app writes, pull/build the intended revision, run
 ## Secrets
 
 Do not commit `.env`, snapshots or restored configuration. Keep the master key stable across application restarts. Password rotation must update the PostgreSQL role and application/migration secrets together. Platform secrets never belong in the frontend bundle.
+
+### Support workflow upgrade
+
+Migration 011 adds the tenant-isolated ticket activity table and index. It neither seeds demonstration users nor rewrites existing ticket data. Old records accumulate real history from the upgrade onward. Runtime access to activity is SELECT/INSERT; owner migration credentials remain separate. Re-run migration before serving so protected Owner roles gain the new reply action with an audit entry. Custom roles are preserved and require explicit reply grants. API callers resolving a ticket must now include a nonblank resolution summary. The recovery drill includes ticket activity as well as the existing object and encrypted-MFA checks.

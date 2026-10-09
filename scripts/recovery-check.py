@@ -20,7 +20,7 @@ import backup
 
 ROOT = backup.ROOT
 TABLES = ['users', 'tenants', 'memberships', 'roles', 'member_roles',
-          'departments', 'resources', 'files', 'jobs', 'audit', 'security_events']
+          'departments', 'resources', 'files', 'jobs', 'audit', 'security_events', 'ticket_events']
 
 
 class Client:
@@ -166,7 +166,7 @@ def main():
             if not recovered.call('/auth/me')['permissions'] or recovered.call('/files/' + file_id + '/download', raw=True) != content:
                 raise RuntimeError('Restored permission or authenticated file check failed')
             recovered.call('/auth/logout', {})
-            print('Recovery PASS: 11 table fingerprints, object checksums, encrypted MFA login, permissions and file download')
+            print(f'Recovery PASS: {len(TABLES)} table fingerprints, object checksums, encrypted MFA login, permissions and file download')
         finally:
             stop(restored)
             try:

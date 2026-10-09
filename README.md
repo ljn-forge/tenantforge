@@ -2,7 +2,11 @@
 
 [简体中文](README.zh-CN.md)
 
-An extensible Go/Vue administration platform with multi-tenant isolation and operation, role, record and field permissions.
+A Go/Vue foundation for multi-tenant enterprise applications, with a complete internal customer-support reference workflow.
+
+Reuse authentication, organizations, roles, tenant isolation and record/field authorization while building your business modules. The support example connects issue registration, supervisor assignment, agent queues, replies/private notes, resolution summaries, closure and reopening.
+
+[Walk through a ticket from administrator setup to agent resolution](docs/support-desk.md#english-overview).
 
 TenantForge combines a same-origin web console with a Go service and PostgreSQL. Configure permissions per action: a tenant-wide read grant never expands a self-only update grant. The runtime database account cannot own protected tables or bypass PostgreSQL row-level security.
 
@@ -42,11 +46,13 @@ Console: http://localhost:5178. Local email mailbox: http://localhost:8029. The 
 - Server-authoritative per-record capabilities, action-specific predicates, typed conditions, masked sensitive fields and guarded edits, assignments and exports.
 - Actual-workload dashboard, Chinese/English presentation, light/dark themes and responsive layouts.
 - Default superadministrator, direct user creation, opaque cookie sessions, CSRF, password recovery, session revocation, TOTP and recovery codes; optional configured OIDC.
-- Tickets with workflow and optimistic versions, dictionaries, settings, notifications, CSV import/export, protected files, durable jobs and audit records.
+- Support-agent/supervisor role templates, personal queues, independent assignment authority, scoped activity/replies/private notes, required resolution summaries, closure/reopening and optimistic versions; dictionaries, settings, notifications, CSV import/export, protected files, durable jobs and audit records.
 - Public Go extension interfaces for registered record operations and background jobs, including permission-filtered task discovery, generated input forms and bilingual typed results; asset approval/inventory is a complete example.
 - Short upload transactions and quota reservations, independent job/mail/collection lanes, typed diagnostics, Prometheus metrics, migration/runtime separation, backup/recovery and container deployment.
 
 ## Documentation
+
+- [Support workflow and developer reuse](docs/support-desk.md)
 
 - [Installation and configuration](docs/installation.md)
 - [Permission semantics and security](docs/security.md)

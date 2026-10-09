@@ -43,5 +43,22 @@ class APIContractTests(unittest.TestCase):
         self.assertFalse(schemas['JobType']['additionalProperties'])
 
 
+    def test_support_activity_and_independent_assignment_are_explicit(self):
+        contract = json.loads((ROOT / 'docs/openapi.json').read_text())
+        schemas = contract['components']['schemas']
+        self.assertEqual(schemas['Capabilities']['properties']['reply_kinds']['items']['enum'], ['reply', 'note'])
+        self.assertNotIn('reply_kinds', schemas['Capabilities']['required'])
+        for name in ['TicketEvent', 'TicketReplyInput', 'TicketReplyResult', 'TicketAssignmentInput']:
+            self.assertFalse(schemas[name]['additionalProperties'])
+        self.assertEqual(schemas['TicketReplyInput']['properties']['body']['maxLength'], 4000)
+        self.assertEqual(set(schemas['TicketReplyInput']['required']), {'version', 'kind', 'body'})
+        assignment = contract['paths']['/resources/{module}/{id}/assignment']['post']
+        self.assertIn('tickets:update is not required', assignment['description'])
+        activity = contract['paths']['/resources/{module}/{id}/activity']['get']
+        self.assertEqual(activity['responses']['200']['content']['application/json']['schema']['properties']['meta']['$ref'], '#/components/schemas/Meta')
+        transition = contract['paths']['/resources/{module}/{id}/transition']['post']
+        self.assertIn('resolution', transition['requestBody']['content']['application/json']['schema']['properties'])
+
+
 if __name__ == '__main__':
     unittest.main()

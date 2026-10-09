@@ -16,7 +16,7 @@ Every grant identifies a resource, action and scope. Matching grants are unioned
 | selected_departments | Explicitly selected tenant departments. |
 | tenant | All records in the selected tenant. |
 
-Reads and writes have distinct checks. Mutation authorization applies to both the existing and resulting row, expected version and relevant write fields. Moving a record needs assignment permission as well as update. Role administrators may delegate only within their effective authority. The last active tenant owner cannot be removed or suspended.
+Reads and writes have distinct checks. Mutation authorization applies to both the existing and resulting row, expected version and relevant write fields. Moving a record through generic PATCH needs assignment permission as well as update. The dedicated ticket assignment endpoint requires original-row read and original/resulting assignment authority without implying general update access. Role administrators may delegate only within their effective authority. The last active tenant owner cannot be removed or suspended.
 
 ## Fields
 
@@ -35,3 +35,9 @@ Production cookies require HTTPS configuration. Responses include CSP, frame den
 ## Reporting
 
 For a vulnerability, share the affected version, safe reproduction and expected authorization result privately with the repository maintainer. Do not place credentials or real tenant data in public issues. Use a disposable environment for cross-tenant/security tests.
+
+## Support activity
+
+Ticket activity is append-only under the runtime database role, tenant-isolated with forced RLS and tenant-aware parent/actor references. Current parent read access is required for every history request. Public conversation uses description read/write authority; private notes require explicit internal_notes read+unmask and matching reply write authority. Hidden replies/notes are excluded from the page and count. Status/resolution details and changed-field names remain field-filtered. Redacted audit never copies communication bodies or customer snapshots.
+
+Adding a reply requires tickets:reply, matching record scope and fields; an update grant is not a substitute. Closed tickets reject new messages; expected versions, parent updates, activity and audit commit together. Server reply_kinds are advisory UI capabilities, never a substitute for these checks. Queue classification uses readable-status predicates to avoid inferring a hidden field through counts. Resolving through transition or generic update requires a fresh nonblank summary.
