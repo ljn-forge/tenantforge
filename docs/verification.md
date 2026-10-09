@@ -8,6 +8,7 @@ version checks and transaction/audit boundaries; no dependencies were added.
 
 | Check | Observed result |
 | --- | --- |
+| Final project check in main | `make check` passed: Go race/unit tests, vet, formatting, 76 frontend tests in 21 files, type check, production build and gzip budgets |
 | Full real PostgreSQL race suite | Passed: platform 48.197s, asset example 2.356s, extension 1.241s, migrations 1.338s |
 | Production browser, stock binary | 4 passed in 42.5s; the opt-in asset example test was intentionally skipped |
 | Production browser, installed public extension | 5 passed in 51.9s, including the support workflow and visible mobile dark activity history |
@@ -16,6 +17,8 @@ version checks and transaction/audit boundaries; no dependencies were added.
 | Recovery | Twelve table fingerprints, object checksums, recovered encrypted MFA login, permissions and authenticated file download passed in a fresh isolated restore database |
 | Existing installation upgrade rehearsal | The private pre-support backup restored into a new database and migrated from 010 to 011; all ten preserved-data fingerprints matched and no historical ticket events were fabricated |
 | Independent review | Backend/frontend specification and quality reviews passed; the new-ticket normal-priority regression was also reviewed |
+| Final container | Image built successfully; its 76 frontend tests and production build passed; local app became healthy after the 011 migration |
+| Live local cutover | Health/readiness 200, anonymous history 401, fresh administrator login browser with no setup wizard, runtime errors or missing assets |
 
 Business acceptance creates departments, support role drafts and separate
 employee accounts through ordinary APIs and UI. A registrar enters a customer's
@@ -49,6 +52,23 @@ The current bundle measurement in [bundle-metrics.json](assets/bundle-metrics.js
 is 122314 JS / 17586 CSS bytes for the entry and 137634 JS / 19689 CSS bytes
 for login, under the 160 KiB JS / 25 KiB CSS budgets. The historical extension
 measurement below is retained under `after_extension_upgrade`.
+
+The verified source was fast-forwarded into local `main`, checked again and
+rebuilt. The old app was stopped before applying migration 011; the final image
+is serving port 8090. All ten private pre-support fingerprints matched after
+startup: users including password hashes, tenants, memberships, departments,
+member-role assignments, resources, files, jobs, invitations and non-Owner roles.
+Protected Owner roles intentionally gained `tickets:reply`, with activation
+auditing. Owner roles and audit are therefore not claimed unchanged. Existing
+administrator credentials were neither reset nor attempted in live browser
+verification. The private backup and restored upgrade rehearsal remain ignored.
+
+Live database readback confirmed no fabricated ticket events, eleven declared
+tables with forced RLS (including quota locks and job effects), a runtime role
+with no table ownership, superuser or BYPASSRLS privilege, and only SELECT/INSERT
+on ticket history. The running app uses numeric UID 10001 and has no owner,
+migration or test database credential environment keys. This describes the
+observed local installation, not an external deployment.
 
 ## Follow-up checks on 2026-10-08
 
