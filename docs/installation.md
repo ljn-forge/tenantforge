@@ -10,7 +10,7 @@ Do not change database passwords in `.env` after the database volume is initiali
 
 ## Native development
 
-`make init` starts PostgreSQL/Mailpit, `make deps` installs locked dependencies, and `make dev` migrates the database and runs Go/Vite together. Ctrl-C stops both development processes. `make backend` and `make web` can run in separate terminals. Use Go 1.26.8 or a supported patched release and Node 24.21+. The browser uses Vite's same-origin API proxy.
+`make init` starts PostgreSQL/Mailpit, `make deps` installs locked dependencies, and `make dev` migrates the database and runs Go/Vite together. Ctrl-C stops both development processes. `make backend` and `make web` can run in separate terminals. Use Go 1.26.9 or a supported newer patched release and Node 24.21+. The browser uses Vite's same-origin API proxy.
 
 ## Environment
 

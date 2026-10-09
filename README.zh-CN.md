@@ -30,7 +30,7 @@
 
 ## 启动
 
-需要 Docker Compose 与 Python 3.12+。本地开发另需 Go 1.26.8、Node 24.21 或兼容的更新 LTS 版本。
+需要 Docker Compose 与 Python 3.12+。本地开发另需 Go 1.26.9 或受支持的更新安全补丁版本，以及 Node 24.21 或兼容的更新 LTS 版本。
 
 ```sh
 git clone https://github.com/ljn-forge/tenantforge.git

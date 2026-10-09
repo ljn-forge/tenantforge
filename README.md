@@ -32,7 +32,7 @@ business records. Build the domain module while reusing the platform services.
 
 ## Start locally
 
-Requirements: Docker with Compose, Python 3.12 or newer. Development also requires Go 1.26.8 and Node 24.21 or a supported newer LTS release.
+Requirements: Docker with Compose, Python 3.12 or newer. Development also requires Go 1.26.9 or a supported newer patched release, and Node 24.21 or a supported newer LTS release.
 
 ```sh
 git clone https://github.com/ljn-forge/tenantforge.git

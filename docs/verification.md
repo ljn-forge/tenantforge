@@ -1,5 +1,36 @@
 # Verification evidence
 
+## Public release and Go security patch on 2026-10-09
+
+The MIT source and illustrated English/Chinese READMEs are published at
+[ljn-forge/tenantforge](https://github.com/ljn-forge/tenantforge). Both guides
+describe all eighteen acceptance screenshots; a public Chrome session verified
+that the English screenshots load and the Chinese guide renders. Gitleaks
+8.30.1 scanned the complete Git history and exported source snapshot without
+findings. Private environment, object data, backups and tools remain ignored.
+
+The [first public CI run](https://github.com/ljn-forge/tenantforge/actions/runs/37867484505)
+passed project checks, real PostgreSQL integration, both production-browser
+profiles, recovery, Python tooling, OpenAPI and the npm audit. Its Go scan then
+reported eleven reachable standard-library advisories with Go 1.26.8. These
+include [GO-2026-6617](https://pkg.go.dev/vuln/GO-2026-6617); the
+[official Go 1.26.9 release](https://go.dev/doc/devel/release#go1.26.0)
+provides the corresponding security fixes.
+
+Re-running the unchanged source with Go 1.26.9 and govulncheck 1.8.0 passed:
+zero vulnerable called symbols and zero vulnerable imported packages. One
+advisory remains in a required module's unused package; this is not a claim
+that every package in every dependency is advisory-free. The minimum Go version,
+GitHub runner and hash-pinned official Docker compiler image now use 1.26.9.
+Local `make check` passed again with all 76 frontend tests and production
+budgets. The patched full PostgreSQL race suite also passed: platform 49.755s,
+assets 2.778s, extension 1.250s and migrations 1.217s.
+The patched application image built successfully using the verified official
+multi-architecture compiler digest.
+See the [current public CI results](https://github.com/ljn-forge/tenantforge/actions/workflows/ci.yml)
+for subsequent runs. Historical measurements below retain their original
+toolchain and scan dates.
+
 ## Internal support workflow checks on 2026-10-09
 
 The complete internal support example was verified against persisted, isolated
@@ -227,8 +258,9 @@ TenantForge neither imports nor calls that package. The scan therefore does not
 claim every package present in a required module is advisory-free.
 
 The GitHub Actions workflow includes tests, isolated browser/recovery runs,
-dependency checks and image build. It is configured in this local repository;
-a remote GitHub workflow run has not been performed.
+dependency checks and image build. At the time of this earlier local baseline,
+a remote GitHub workflow run had not yet been performed; public run evidence
+is recorded above.
 
 ```sh
 make init
